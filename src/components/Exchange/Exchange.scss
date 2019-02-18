@@ -1,0 +1,53 @@
+.exchange {
+    color: white;
+    font-family: 'Roboto';
+    width: 100%;
+    .heading{
+        padding-bottom: 10px;
+        .exchange-name {
+            text-align: center;
+            font-size: 2.2vw;
+        }
+        .server {
+            text-align: center;
+            font-size: 1.5vw;
+        }
+    }
+    .window {
+        border-radius: 15px;
+        overflow: hidden;
+        .json {
+            background-color: #00182b;
+            height: 400px;
+            padding: 0 18px;
+            overflow: auto;
+            .renderjson {
+                a { text-decoration: none; color: wheat; }
+                .disclosure { color: #696969; font-size: 150%; }
+                .syntax { color: grey; }
+                .string { color: #ff9900; }
+                .number { color: #ebff00; }
+                .boolean { color: blueviolet; }
+                .key    { color: #00fbff; }
+                .keyword { color: blue; }
+                .object.syntax { color: lightseagreen; }
+                .array.syntax  { color: orange; }
+            }
+        }
+        .footer {
+            background-color: #1b1b1b;
+            height: 36px;
+            .btn {
+                width: 64px;
+                border-top-left-radius: 0;
+            }
+            .last-received {
+                display: inline-block;
+                width: calc(100% - 64px);
+                text-align: center;
+                vertical-align: middle;
+            }
+        }
+    }
+    
+}

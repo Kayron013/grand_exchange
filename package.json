@@ -1,0 +1,36 @@
+{
+  "name": "queue_viewer",
+  "version": "0.1.0",
+  "description": "queue viewer",
+  "main": "index.js",
+  "author": "Angel Campbell",
+  "license": "MIT",
+  "dependencies": {
+    "@material-ui/core": "^3.9.2",
+    "express": "^4.16.4",
+    "moment": "^2.24.0",
+    "react": "^16.8.2",
+    "react-dom": "^16.8.2",
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.3.3",
+    "@babel/preset-env": "^7.3.1",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.5",
+    "concurrently": "^4.1.0",
+    "css-loader": "^2.1.0",
+    "node-sass": "^4.11.0",
+    "reload": "^2.4.0",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
+    "webpack": "^4.29.4",
+    "webpack-cli": "^3.2.3"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "build": "webpack",
+    "dev": "concurrently 'nodemon server.js --watch server.js' 'webpack --watch'"
+  }
+}
