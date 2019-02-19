@@ -2,15 +2,24 @@
     color: white;
     font-family: 'Roboto';
     width: 100%;
+    background: #2c1748;
+    padding: 6px;
+    border-radius: 18px;
+    .close-btn {
+        float: left;
+        left: 0;
+        top: 0;
+        margin-right: -40px;
+    }
     .heading{
         padding-bottom: 10px;
         .exchange-name {
             text-align: center;
-            font-size: 2.2vw;
+            // font-size: 2.2vw;
         }
         .server {
             text-align: center;
-            font-size: 1.5vw;
+            // font-size: 1.5vw;
         }
     }
     .window {
@@ -21,18 +30,22 @@
             height: 400px;
             padding: 0 18px;
             overflow: auto;
+            transition: height 1.5s;
             .renderjson {
-                a { text-decoration: none; color: wheat; }
+                a { text-decoration: none; color: #fff; }
                 .disclosure { color: #696969; font-size: 150%; }
                 .syntax { color: grey; }
-                .string { color: #ff9900; }
-                .number { color: #ebff00; }
-                .boolean { color: blueviolet; }
-                .key    { color: #00fbff; }
+                .string { color: #ffa900; }
+                .number { color: #fff000; }
+                .boolean { color: #fff000; }
+                .key    { color: #ffffff; }
                 .keyword { color: blue; }
-                .object.syntax { color: lightseagreen; }
-                .array.syntax  { color: orange; }
+                .object.syntax { color: #00fff0; }
+                .array.syntax  { color: #00fff0; }
             }
+        }
+        .json.closed {
+            height: 0px;
         }
         .footer {
             background-color: #1b1b1b;
@@ -46,6 +59,8 @@
                 width: calc(100% - 64px);
                 text-align: center;
                 vertical-align: middle;
+                font-size: .9rem;
+                cursor: pointer;
             }
         }
     }

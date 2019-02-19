@@ -30,7 +30,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build": "webpack",
-    "dev": "concurrently 'nodemon server.js --watch server.js' 'webpack --watch'"
+    "build": "webpack --mode production",
+    "dev": "concurrently 'nodemon server.js --watch server.js' 'webpack --mode development --watch' 'reload -p 8081 -d dist'"
   }
 }

@@ -21,25 +21,35 @@ const contents = [
                 name: 'innerobj3',
                 stuff: '...'
             }
-        }
+        },
+        isSomething: false
     },
     {
         name: 'content2',
         different_stuff: {
             key_1: 'prop_1',
-            thinger_2: 'thingee_2',
+            important_number: 2,
             inner_obj_3: {
                 name: 'inner_obj_3',
-                stuff: '...'
+                stuff: '...',
             }
         },
         other_stuff: {
             important_info: 'this is important',
             very_important_info: 'this is very important',
-            inner_obj: {
-                name: 'inner_obj',
-                super: 'this is super duper important'
-            }
+            uber_important_objs: [
+                {
+                    name: 'uio_1',
+                    super: 'this is super duper important',
+                    important_bool: true
+                },
+                {
+                    name: 'uio_2',
+                    super: 'this is equally important',
+                    important_bool: false
+                },
+                
+            ]
         }
     }
 ];
