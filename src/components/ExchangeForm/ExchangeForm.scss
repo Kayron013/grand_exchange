@@ -1,4 +1,27 @@
 .exchange-form {
     margin: 10rem;
     padding: 10px;
+    .form-heading {
+        text-align: center;
+    }
+    @media (min-width: 960px) {
+        .form-heading {
+            text-align: initial;
+        }
+    }
+    form {
+        display: flex;
+        justify-content: space-evenly;
+        flex-wrap: wrap;
+        padding:10px;
+        .form-input {
+            flex-basis: 70%;
+            margin-bottom: 12px;
+        }
+        @media (min-width: 960px) {
+            .form-input {
+                flex-basis: 30%;
+            }
+        }
+    }
 }
