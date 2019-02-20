@@ -2,14 +2,14 @@ import React, { Component } from 'react';
 import { Fab, Button, Icon, Typography, Link } from "@material-ui/core";
 import { renderjson } from '../../lib/renderjson/renderjson';
 import moment from "moment";
-import { addListener, removeListener, emitEvent } from "../../services/socket";
+import { addListener, removeListener } from "../../services/socket";
 import './Exchange.scss';
 
 
 export class Exchange extends Component {
     state = {
         data: '',
-        level: 1,
+        level: 2,
         isPaused: false,
         isClosed: false
     };
@@ -21,12 +21,13 @@ export class Exchange extends Component {
     }
 
     componentDidMount = () => {
-        addListener(this.props.exchange, this.eventHandler);
+        const event_key = `${this.props.server}:${this.props.exchange}:${this.props.routing_key || ''}`;
+        addListener(event_key, this.eventHandler);
     }
 
     componentDidUpdate = () => {
         const old_child = this.json_ref.current.firstElementChild;
-        const new_child = renderjson.set_show_to_level(this.props.level)(this.state.data.content)
+        const new_child = renderjson.set_icons('chevron_right','expand_more').set_show_to_level(this.state.level)(this.state.data.content)
         this.json_ref.current.replaceChild(new_child, old_child);
     }
 
@@ -41,12 +42,12 @@ export class Exchange extends Component {
     toggleWindow = () => { this.setState(state => ({ isClosed: !state.isClosed })) }
     
     closeHandler = () => {
-        this.props.closeHandler(this.props.server, this.props.exchange);
+        this.props.closeHandler(this.props.server, this.props.exchange, this.props.routing_key);
     }
     
 
     render() {
-        const { exchange, server } = this.props;
+        const { exchange, server, routing_key } = this.props;
         const { isPaused, isClosed, data } = this.state;
         return (
             <div className='exchange'>
@@ -55,14 +56,16 @@ export class Exchange extends Component {
                         <Icon>close</Icon>
                     </Fab>
                     <Typography variant='h5' className='exchange-name'>
-                        <Link color='secondary' href={`#`} target='blank'>{exchange}</Link>
+                        <Link color='secondary' href={`#`} target='blank'>{exchange + (routing_key ? ' (' +routing_key+ ')' : '')}</Link>
                     </Typography>
                     <Typography variant='subtitle1' className='server'>
                         <Link color='secondary' href={`http://${server}`} target='blank'>{server}</Link>
                     </Typography>
                 </div>
                 <div className='window'>
-                    <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}><div className='target-child'></div></div>
+                    <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>
+                        <div className='target-child'></div>
+                    </div>
                     <div className='footer'>
                         <Button
                             variant='contained' 

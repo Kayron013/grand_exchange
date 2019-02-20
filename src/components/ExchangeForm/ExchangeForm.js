@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Paper, TextField, InputAdornment, Icon, IconButton, Typography, Button } from '@material-ui/core';
+import { Paper, TextField, InputAdornment, Icon, IconButton, Typography, Button, FormControlLabel, Checkbox } from '@material-ui/core';
 import './ExchangeForm.scss';
 
 
@@ -7,7 +7,8 @@ export class ExchangeForm extends Component {
     state = {
         server: '',
         exchange: '',
-        route_key: '',
+        routing_key: '',
+        is_durable: false,
         username: '',
         password: '',
         show_password: false
@@ -22,9 +23,10 @@ export class ExchangeForm extends Component {
         this.setState(state => ({ show_password: !state.show_password }));
     }
 
+    handleSubmit = _ => this.props.onSubmit(this.state);
+
     render() {
-        const { server, exchange, route_key, username, password, show_password } = this.state;
-        const handleSubmit = this.props.onSubmit;
+        const { server, exchange, routing_key, is_durable, username, password, show_password } = this.state;
         return (
             <Paper className='exchange-form' tabIndex={-1}>
                 <Typography variant='h6' className='form-heading'>Exchange Route</Typography>
@@ -55,12 +57,22 @@ export class ExchangeForm extends Component {
                         id='route-key'
                         label='Route Key (optional)'
                         className='form-input'
-                        value={route_key}
-                        onChange={this.handleChange('route_key')}
+                        value={routing_key}
+                        onChange={this.handleChange('routing_key')}
                         variant='outlined'
                         InputProps={{
                             startAdornment: <InputAdornment position="start"><Icon>pageview</Icon></InputAdornment>
                         }}
+                    />
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={is_durable}
+                                onChange={_ => this.setState(state => ({ is_durable: !state.is_durable }))}
+                                color='primary'
+                            />
+                        }
+                        label='Exchange is Durable'
                     />
                 </form>
                 <Typography variant='h6' className='form-heading'>Server Credentials</Typography>
@@ -99,7 +111,7 @@ export class ExchangeForm extends Component {
                     />
                 </form>
                 <div className='submit-area'>
-                    <Button color='secondary' variant='contained' onClick={handleSubmit}>Connect</Button>
+                    <Button color='secondary' variant='contained' onClick={this.handleSubmit}>Connect</Button>
                 </div>
             </Paper>
         )
