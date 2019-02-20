@@ -7,48 +7,40 @@ import './Exchange.scss';
 
 
 export class Exchange extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            data: '',
-            level: 1,
-            isPaused: false,
-            isClosed: false
-        };
-        this.json_ref = React.createRef();
-        this.eventHandler = this.eventHandler.bind(this);
-    }
+    state = {
+        data: '',
+        level: 1,
+        isPaused: false,
+        isClosed: false
+    };
 
-    eventHandler(d) {
+    json_ref = React.createRef();
+
+    eventHandler = (d) => {
         if (!this.state.isPaused) this.setState(state => ({ data: d }));
     }
 
-    componentDidMount() {
+    componentDidMount = () => {
         addListener(this.props.exchange, this.eventHandler);
     }
 
-    // shouldComponentUpdate(next_props, next_state) {
-    //     if (this.state.isPaused) return !next_state.isPaused
-    //     return true;
-    // }
-
-    componentDidUpdate() {
+    componentDidUpdate = () => {
         const old_child = this.json_ref.current.firstElementChild;
         const new_child = renderjson.set_show_to_level(this.props.level)(this.state.data.content)
         this.json_ref.current.replaceChild(new_child, old_child);
     }
 
-    componentWillUnmount() {
+    componentWillUnmount = () => {
         removeListener(this.props.exchange, this.eventHandler);
     }
 
-    updateLevel(new_level) { this.setState(state => ({ level: new_level })) }
+    updateLevel = (new_level) => { this.setState(state => ({ level: new_level })) }
 
-    togglePlayback() { this.setState(state => ({ isPaused: !state.isPaused })) }
+    togglePlayback = () => { this.setState(state => ({ isPaused: !state.isPaused })) }
 
-    toggleWindow() { this.setState(state => ({ isClosed: !state.isClosed })) }
+    toggleWindow = () => { this.setState(state => ({ isClosed: !state.isClosed })) }
     
-    closeHandler() {
+    closeHandler = () => {
         this.props.closeHandler(this.props.server, this.props.exchange);
     }
     
@@ -59,7 +51,7 @@ export class Exchange extends Component {
         return (
             <div className='exchange'>
                 <div className='heading'>
-                    <Fab color='default' className='close-btn' size='small' onClick={this.closeHandler.bind(this)}>
+                    <Fab color='default' className='close-btn' size='small' onClick={this.closeHandler}>
                         <Icon>close</Icon>
                     </Fab>
                     <Typography variant='h5' className='exchange-name'>
@@ -76,12 +68,12 @@ export class Exchange extends Component {
                             variant='contained' 
                             color='primary' 
                             className='btn'
-                            onClick={this.togglePlayback.bind(this)}>
+                            onClick={this.togglePlayback}>
                             <Icon>{isPaused ? 'play_arrow' : 'pause'}</Icon>
                         </Button>
                         <div
                             className='last-received'
-                            onClick={this.toggleWindow.bind(this)}>
+                            onClick={this.toggleWindow}>
                             Last Message Received:
                             <br />
                             {data ? moment(data.timestamp).format('hh:mm:ss a, MMM DD') : ''}

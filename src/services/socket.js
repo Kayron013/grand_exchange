@@ -1,6 +1,6 @@
 import io from "socket.io-client";
 
-const socket = io('http://localhost:8082');
+const socket = io('http://localhost:8083');
 
 socket.on('init', d => console.log('from server:', d));
 

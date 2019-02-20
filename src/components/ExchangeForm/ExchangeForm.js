@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Paper, TextField, InputAdornment, Icon, IconButton, Typography } from '@material-ui/core';
+import { Paper, TextField, InputAdornment, Icon, IconButton, Typography, Button } from '@material-ui/core';
 import './ExchangeForm.scss';
 
 
@@ -24,6 +24,7 @@ export class ExchangeForm extends Component {
 
     render() {
         const { server, exchange, route_key, username, password, show_password } = this.state;
+        const handleSubmit = this.props.onSubmit;
         return (
             <Paper className='exchange-form' tabIndex={-1}>
                 <Typography variant='h6' className='form-heading'>Exchange Route</Typography>
@@ -37,7 +38,7 @@ export class ExchangeForm extends Component {
                         variant='outlined'
                         InputProps={{
                             startAdornment: <InputAdornment position="start"><Icon>public</Icon></InputAdornment>,
-                          }}
+                        }}
                     />
                     <TextField
                         id='exchange-name'
@@ -48,7 +49,7 @@ export class ExchangeForm extends Component {
                         variant='outlined'
                         InputProps={{
                             startAdornment: <InputAdornment position="start"><Icon>inbox</Icon></InputAdornment>,
-                          }}
+                        }}
                     />
                     <TextField
                         id='route-key'
@@ -58,8 +59,8 @@ export class ExchangeForm extends Component {
                         onChange={this.handleChange('route_key')}
                         variant='outlined'
                         InputProps={{
-                            startAdornment: <InputAdornment position="start"><Icon>vpn_key</Icon></InputAdornment>
-                          }}
+                            startAdornment: <InputAdornment position="start"><Icon>pageview</Icon></InputAdornment>
+                        }}
                     />
                 </form>
                 <Typography variant='h6' className='form-heading'>Server Credentials</Typography>
@@ -97,6 +98,9 @@ export class ExchangeForm extends Component {
                         }}
                     />
                 </form>
+                <div className='submit-area'>
+                    <Button color='secondary' variant='contained' onClick={handleSubmit}>Connect</Button>
+                </div>
             </Paper>
         )
     }

@@ -67,5 +67,5 @@ const constructData = _ => {
 
 setInterval(() => io.emit('some_exchange', constructData()), 1000);
 
-const port = 8082;
+const port = 8083;
 http.listen(port, console.log(`Server listening on port ${port}`))
