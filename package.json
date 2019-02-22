@@ -7,6 +7,8 @@
   "license": "MIT",
   "dependencies": {
     "@material-ui/core": "^3.9.2",
+    "amqplib": "^0.5.3",
+    "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "moment": "^2.24.0",
     "react": "^16.8.2",
@@ -17,6 +19,7 @@
   "devDependencies": {
     "@babel/core": "^7.3.3",
     "@babel/plugin-proposal-class-properties": "^7.3.3",
+    "@babel/plugin-transform-runtime": "^7.2.0",
     "@babel/preset-env": "^7.3.1",
     "@babel/preset-react": "^7.0.0",
     "babel-loader": "^8.0.5",
@@ -33,6 +36,6 @@
   "scripts": {
     "start": "node server.js",
     "build": "webpack --mode production",
-    "dev": "concurrently 'nodemon server.js --watch server.js' 'webpack --mode development --watch' 'reload -p 8081 -d dist'"
+    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\" \"reload -p 8084 -d dist\""
   }
 }
