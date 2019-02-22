@@ -42,7 +42,7 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
     try {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
             if (err) { throw { message: 'connection failed', error: err } }
-            console.log(username, password, server, exchange, routing_key, is_durable);
+            console.log(server, exchange, routing_key, is_durable);
             conn.createChannel((err, ch) => {
                 ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
                 ch.assertQueue('', { exclusive: true }, (err, q) => {
@@ -173,4 +173,4 @@ app.post('/', (req, res) => {
 // setInterval(() => io.emit(sample_key, constructData()), 1000);
 
 const port = 8083;
-http.listen(port, console.log(`Server listening on port ${port}`))
+http.listen(port, console.log(`Server listening on port ${port}.\nHot-reloadable server listening on port 8084`))
