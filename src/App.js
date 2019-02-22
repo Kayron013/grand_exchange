@@ -47,16 +47,23 @@ export class App extends Component {
 
     handleSubmit = d => {
         console.log('request sent');
-        requestConnection(d, res => {
-            console.log('res', res);
-            if (res.err) {
-                alert('Error connecting to exchange');
-                console.log('Error connecting to exchange', res.err);
-            }
-            else {
-                this.addExchange(d.server, d.exchange, d.routing_key);
-            }
-        });
+        const exchange_found = this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
+        if (exchange_found) {
+            alert('Already connected to this exchange');
+        }
+        else {
+            requestConnection(d, res => {
+                console.log('res', res);
+                if (res.error) {
+                    alert('Error connecting to exchange');
+                    console.log('Error connecting to exchange', res.error);
+                }
+                else {
+                    this.addExchange(d.server, d.exchange, d.routing_key);
+                }
+            }); 
+        }
+        
     }
 
 
