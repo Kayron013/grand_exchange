@@ -30,7 +30,7 @@ export class ExchangeForm extends Component {
          return false;
     } 
     handleEnter = (e)=>{
-        console.log(e.charCode);
+        // console.log(e.charCode);
         if(e.charCode==13){
             this.props.onSubmit(this.state);    
         }
