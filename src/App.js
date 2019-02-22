@@ -8,9 +8,7 @@ import './App.scss';
 
 export class App extends Component {
     state = {
-        exchanges: [
-            { server: '10.52.79.211', exchange: 'some_exchange', routing_key: '', evt_key: '10.52.79.211:some_exchange:' }
-        ],
+        exchanges: [],
         modal_isOpen: false
     }
 

@@ -25,6 +25,19 @@ app.use((req, res, next) => {
 const connections = {};
 global.connections = connections;
 
+
+const consume = (server, exchange, routing_key, res, ch, q) => {
+    const event_key = `${server}:${exchange}:${routing_key}`;
+        console.log('consuming; evt key:', event_key);
+        res.json({ status: 'ok' });
+        ch.consume(q.queue, msg => {
+            const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
+            io.emit(event_key, data);
+            //console.log('emitted:', data);
+        }, { noAck: true });
+}
+
+
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     try {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
@@ -44,14 +57,7 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                             }
                         }
                     };
-                    const event_key = `${server}:${exchange}:${routing_key}`;
-                    console.log('consuming; evt key:', event_key);
-                    res.json({ status: 'ok' });
-                    ch.consume(q.queue, msg => {
-                        const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
-                        io.emit(event_key, data);
-                        //console.log('emitted:', data);
-                    }, { noAck: true });
+                    consume(server, exchange, routing_key, res, ch, q);
                 });
             });
         });
@@ -72,14 +78,7 @@ const reuseChannel = ({ server, exchange, routing_key = '', is_durable }, res, c
                 [routing_key]: { connections: 1 }
             },
         };
-        const event_key = `${server}:${exchange}:${routing_key}`;
-        console.log('consuming; evt key:', event_key);
-        res.json({ status: 'ok' });
-        ch.consume(q.queue, msg => {
-            const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
-            io.emit(event_key, data);
-            //console.log('emitted:', data);
-        }, { noAck: true });
+        consume(server, exchange, routing_key, res, ch, q);
     });
 }
 
@@ -88,14 +87,7 @@ const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
     ch.assertQueue('', { exclusive: true }, (err, q) => {
         ch.bindQueue(q.queue, exchange, routing_key);
         connections[server].exchanges[exchange].routes[routing_key] = { connections: 1 };
-        const event_key = `${server}:${exchange}:${routing_key}`;
-        console.log('consuming; evt key:', event_key);
-        res.json({ status: 'ok' });
-        ch.consume(q.queue, msg => {
-            const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
-            io.emit(event_key, data);
-            //console.log('emitted:', data);
-        }, { noAck: true });
+        consume(server, exchange, routing_key, res, ch, q);
     })
 }
 
@@ -122,69 +114,63 @@ app.post('/', (req, res) => {
     }
 })
 
-io.on('connect', socket => {
-    socket.on('connection-request', req => {
-        makeConnection(req, socket);
-    });
-});
 
-
-const contents = [
-    {
-        name: 'content1',
-        stuff: {
-            key1: 'prop1',
-            thinger2: 'thingee2',
-            innerobj3: {
-                name: 'innerobj3',
-                stuff: '...'
-            }
-        },
-        isSomething: false
-    },
-    {
-        name: 'content2',
-        different_stuff: {
-            key_1: 'prop_1',
-            important_number: 2,
-            inner_obj_3: {
-                name: 'inner_obj_3',
-                stuff: '...',
-            }
-        },
-        other_stuff: {
-            important_info: 'this is important',
-            very_important_info: 'this is very important',
-            uber_important_objs: [
-                {
-                    name: 'uio_1',
-                    super: 'this is super duper important',
-                    important_bool: true
-                },
-                {
-                    name: 'uio_2',
-                    super: 'this is equally important',
-                    important_bool: false
-                },
+// const contents = [
+//     {
+//         name: 'content1',
+//         stuff: {
+//             key1: 'prop1',
+//             thinger2: 'thingee2',
+//             innerobj3: {
+//                 name: 'innerobj3',
+//                 stuff: '...'
+//             }
+//         },
+//         isSomething: false
+//     },
+//     {
+//         name: 'content2',
+//         different_stuff: {
+//             key_1: 'prop_1',
+//             important_number: 2,
+//             inner_obj_3: {
+//                 name: 'inner_obj_3',
+//                 stuff: '...',
+//             }
+//         },
+//         other_stuff: {
+//             important_info: 'this is important',
+//             very_important_info: 'this is very important',
+//             uber_important_objs: [
+//                 {
+//                     name: 'uio_1',
+//                     super: 'this is super duper important',
+//                     important_bool: true
+//                 },
+//                 {
+//                     name: 'uio_2',
+//                     super: 'this is equally important',
+//                     important_bool: false
+//                 },
                 
-            ]
-        }
-    }
-];
+//             ]
+//         }
+//     }
+// ];
 
-let content_index = 0;
-const switchIndex = _ => { content_index = content_index ? 0 : 1 };
+// let content_index = 0;
+// const switchIndex = _ => { content_index = content_index ? 0 : 1 };
 
-const constructData = _ => {
-    switchIndex();
-    return {
-        timestamp: Date.now(),
-        content: contents[content_index]
-    }
-}
+// const constructData = _ => {
+//     switchIndex();
+//     return {
+//         timestamp: Date.now(),
+//         content: contents[content_index]
+//     }
+// }
 
-const sample_key = `${'10.52.79.211'}:${'some_exchange'}:${''}`;
-setInterval(() => io.emit(sample_key, constructData()), 1000);
+// const sample_key = `${'10.52.79.211'}:${'some_exchange'}:${''}`;
+// setInterval(() => io.emit(sample_key, constructData()), 1000);
 
 const port = 8083;
 http.listen(port, console.log(`Server listening on port ${port}`))
