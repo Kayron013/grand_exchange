@@ -15,7 +15,6 @@ export class ExchangeForm extends Component {
     }
 
     handleChange = field => evt => {
-       
         evt.persist();
         this.setState(state => ({ [field]: evt.target.value }));
     }
@@ -24,25 +23,14 @@ export class ExchangeForm extends Component {
         this.setState(state => ({ show_password: !state.show_password }));
     }
 
-    handleSubmit = (event) =>{
-        //  event.preventDefault();
-         this.props.onSubmit(this.state);
-         return false;
-    } 
-    handleEnter = (e)=>{
-        // console.log(e.charCode);
-        if(e.charCode==13){
-            this.props.onSubmit(this.state);    
-        }
-             
-    }
+    handleSubmit = _ => this.props.onSubmit(this.state);
 
     render() {
         const { server, exchange, routing_key, is_durable, username, password, show_password } = this.state;
         return (
-            <form className='exchange-form' tabIndex={-1} onKeyPress={this.handleEnter} >
+            <Paper className='exchange-form' tabIndex={-1}>
                 <Typography variant='h6' className='form-heading'>Exchange Route</Typography>
-                <div className="exchange-input">
+                <form>
                     <TextField
                         id='server-name'
                         label='Server'
@@ -86,9 +74,9 @@ export class ExchangeForm extends Component {
                         }
                         label='Exchange is Durable'
                     />
-                </div>
+                </form>
                 <Typography variant='h6' className='form-heading'>Server Credentials</Typography>
-                <div className="exchange-input">
+                <form>
                     <TextField
                         id='username'
                         label='Username'
@@ -121,11 +109,11 @@ export class ExchangeForm extends Component {
                                 </InputAdornment>
                         }}
                     />
-                </div>
+                </form>
                 <div className='submit-area'>
-                    <Button type="button" color='secondary' variant='contained' onClick={this.handleSubmit}>Connect</Button>
+                    <Button color='secondary' variant='contained' onClick={this.handleSubmit}>Connect</Button>
                 </div>
-            </form>
+            </Paper>
         )
     }
 }
