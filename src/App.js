@@ -49,9 +49,9 @@ export class App extends Component {
         console.log('request sent');
         requestConnection(d, res => {
             console.log('res', res);
-            if (res.err) {
+            if (res.status =="error") {
                 alert('Error connecting to exchange');
-                console.log('Error connecting to exchange', res.err);
+               
             }
             else {
                 this.addExchange(d.server, d.exchange, d.routing_key);
