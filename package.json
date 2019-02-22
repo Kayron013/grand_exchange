@@ -36,6 +36,6 @@
   "scripts": {
     "start": "node server.js",
     "build": "webpack --mode production",
-    "dev": "concurrently -k \"nodemon server.js --watch server.js\" \"webpack --mode development --watch\" \"reload -p 8084 -d dist\""
+    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\" \"reload -p 8084 -d dist\""
   }
 }

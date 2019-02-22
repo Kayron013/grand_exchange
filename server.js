@@ -36,20 +36,20 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                     ch.bindQueue(q.queue, exchange, routing_key);
                     connections[server] = {
                         channel: ch,
-                        exchanges: [{
-                            exchange,
-                            routes: [{
-                                routing_key,
-                                connections: 1
-                            }]
-                        }]
+                        exchanges: {
+                            [exchange]: {
+                                routes: {
+                                    [routing_key]: { connections: 1 }
+                                },
+                            }
+                        }
                     };
                     const event_key = `${server}:${exchange}:${routing_key}`;
                     console.log('consuming; evt key:', event_key);
                     res.json({ status: 'ok' });
                     ch.consume(q.queue, msg => {
                         const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
-                        io.emit(event_key, data, { noAck: true });
+                        io.emit(event_key, data);
                         //console.log('emitted:', data);
                     }, { noAck: true });
                 });
@@ -62,9 +62,64 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
     
 }
 
+
+const reuseChannel = ({ server, exchange, routing_key = '', is_durable }, res, ch) => {
+    ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+    ch.assertQueue('', { exclusive: true }, (err, q) => {
+        ch.bindQueue(q.queue, exchange, routing_key);
+        connections[server].exchanges[exchange] = {
+            routes: {
+                [routing_key]: { connections: 1 }
+            },
+        };
+        const event_key = `${server}:${exchange}:${routing_key}`;
+        console.log('consuming; evt key:', event_key);
+        res.json({ status: 'ok' });
+        ch.consume(q.queue, msg => {
+            const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
+            io.emit(event_key, data);
+            //console.log('emitted:', data);
+        }, { noAck: true });
+    });
+}
+
+
+const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
+    ch.assertQueue('', { exclusive: true }, (err, q) => {
+        ch.bindQueue(q.queue, exchange, routing_key);
+        connections[server].exchanges[exchange].routes[routing_key] = { connections: 1 };
+        const event_key = `${server}:${exchange}:${routing_key}`;
+        console.log('consuming; evt key:', event_key);
+        res.json({ status: 'ok' });
+        ch.consume(q.queue, msg => {
+            const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
+            io.emit(event_key, data);
+            //console.log('emitted:', data);
+        }, { noAck: true });
+    })
+}
+
 app.post('/', (req, res) => {
-    console.log(req.body);
-    makeConnection(req.body, res);
+    const { server, exchange, routing_key } = req.body;
+    if (connections[server]) {
+        const connection = connections[server];
+        if (connection.exchanges[exchange]) {
+            const route = connection.exchanges[exchange].routes[routing_key];
+            if (route) {
+                route.connections++;
+                res.json({ status: 'ok' });
+            }
+            else {
+                reuseExchange(req.body, res, connection.channel);
+            }
+        }
+        else {
+            reuseChannel(req.body, res, connection.channel);
+        }
+    }
+    else {
+        makeConnection(req.body, res);
+    }
 })
 
 io.on('connect', socket => {
