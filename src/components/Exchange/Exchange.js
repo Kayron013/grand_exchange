@@ -8,7 +8,7 @@ import './Exchange.scss';
 
 export class Exchange extends Component {
     state = {
-        data: '',
+        data: {},
         level: 2,
         isPaused: false,
         isClosed: false
@@ -44,6 +44,8 @@ export class Exchange extends Component {
     closeHandler = () => {
         this.props.closeHandler(this.props.server, this.props.exchange, this.props.routing_key);
     }
+
+    isEmpty = obj => Object.values(obj).length;
     
 
     render() {
@@ -79,7 +81,7 @@ export class Exchange extends Component {
                             onClick={this.toggleWindow}>
                             Last Message Received:
                             <br />
-                            {data ? moment(data.timestamp).format('hh:mm:ss a, MMM DD') : ''}
+                            {this.isEmpty(data) ? '' : moment(data.timestamp).format('hh:mm:ss a, MMM DD')}
                         </div>
                     </div>
                 </div>

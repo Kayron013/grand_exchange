@@ -7,13 +7,25 @@ const express = require('express'),
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
+app.use(express.json());
 
 app.get('/', (req, res) => res.sendFile('index'));
 
 
-const connections = {};
+app.use((req, res, next) => {
+    res.header({
+    'Access-Control-Allow-Origin': req.headers.origin.includes('localhost') ? req.headers.origin : '',
+    "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
+    'Vary': 'Origin'
+    });
+    next();
+    });
 
-const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, socket) => {
+
+const connections = {};
+global.connections = connections;
+
+const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     try {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
             if (err) { throw { message: 'connection failed', error: err } }
@@ -22,20 +34,38 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                 ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
                 ch.assertQueue('', { exclusive: true }, (err, q) => {
                     ch.bindQueue(q.queue, exchange, routing_key);
-                    connections[server] = { channel: ch, exchanges: [{ exchange, routing_key }] };
+                    connections[server] = {
+                        channel: ch,
+                        exchanges: [{
+                            exchange,
+                            routes: [{
+                                routing_key,
+                                connections: 1
+                            }]
+                        }]
+                    };
                     const event_key = `${server}:${exchange}:${routing_key}`;
                     console.log('consuming; evt key:', event_key);
-                    socket.emit('connection-response', { status: 'ok' });
-                    ch.consume(q.queue, msg => io.emit(event_key, { timestamp: Date.now(), content: JSON.parse(msg.content) }), { noAck: true });
+                    res.json({ status: 'ok' });
+                    ch.consume(q.queue, msg => {
+                        const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
+                        io.emit(event_key, data, { noAck: true });
+                        //console.log('emitted:', data);
+                    }, { noAck: true });
                 });
             });
         });
     }
     catch (err) {
-        socket.emit('connection-response', { status: 'error', err });
+        return { status: 'error', err };
     }
     
 }
+
+app.post('/', (req, res) => {
+    console.log(req.body);
+    makeConnection(req.body, res);
+})
 
 io.on('connect', socket => {
     socket.on('connection-request', req => {
