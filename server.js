@@ -4,6 +4,7 @@ const express = require('express'),
     http = require('http').Server(app),
     io = require('socket.io')(http),
     amqp = require('amqplib/callback_api');
+    //zmq = require('zmq');
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
@@ -41,25 +42,27 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     try {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
-            if (err) { throw { message: 'connection failed', error: err } }
-            console.log(server, exchange, routing_key, is_durable);
-            conn.createChannel((err, ch) => {
-                ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
-                ch.assertQueue('', { exclusive: true }, (err, q) => {
-                    ch.bindQueue(q.queue, exchange, routing_key);
-                    connections[server] = {
-                        channel: ch,
-                        exchanges: {
-                            [exchange]: {
-                                routes: {
-                                    [routing_key]: { connections: 1 }
-                                },
+            if (err) res.json({ status: 'error', error: err })
+            else {
+                console.log(server, exchange, routing_key, is_durable);
+                conn.createChannel((err, ch) => {
+                    ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+                    ch.assertQueue('', { exclusive: true }, (err, q) => {
+                        ch.bindQueue(q.queue, exchange, routing_key);
+                        connections[server] = {
+                            channel: ch,
+                            exchanges: {
+                                [exchange]: {
+                                    routes: {
+                                        [routing_key]: { connections: 1 }
+                                    },
+                                }
                             }
-                        }
-                    };
-                    consume(server, exchange, routing_key, res, ch, q);
+                        };
+                        consume(server, exchange, routing_key, res, ch, q);
+                    });
                 });
-            });
+            }
         });
     }
     catch (err) {
@@ -112,7 +115,14 @@ app.post('/', (req, res) => {
     else {
         makeConnection(req.body, res);
     }
-})
+});
+
+
+// const socket = zmq.socket('sub');
+// socket.bind('tcp://10.50.78.151:5556', (err) => err ? console.log(err) : console.log('listening'));
+// // console.log('zmq "connected"');
+// // socket.subscribe('');
+// socket.on('message', (topic, message) => console.log(topic, message));
 
 
 // const contents = [
