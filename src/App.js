@@ -2,42 +2,50 @@ import React, { Component } from "react";
 import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-ui/core';
 import { Exchange } from './components/Exchange/Exchange';
 import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
-import { requestConnection } from "./services/socket";
+import { requestConnection, addListener, removeListener } from "./services/socket";
 import './App.scss';
 
 
 export class App extends Component {
     state = {
         exchanges: [
-            { server: '10.52.79.211', exchange: 'some_exchange', routing_key: '' }
+            { server: '10.52.79.211', exchange: 'some_exchange', routing_key: '', evt_key: '10.52.79.211:some_exchange:' }
         ],
         modal_isOpen: false
     }
 
 
-    renderExchanges = () => {
-        return this.state.exchanges.map((exchange, i) => (
-            <Grid item xs={6} md={4} key={i}>
-                <Exchange {...exchange} closeHandler={this.removeExchange.bind(this)}/>
-            </Grid>
-        ))
+    eventHandler = evt_key => d => {
+        const exchanges = JSON.parse(JSON.stringify(this.state.exchanges));
+        const exchange = exchanges.find(ex => ex.evt_key == evt_key);
+        exchange.data = d;//JSON.stringify(d);
+        this.setState(state => ({ exchanges }));
     }
+
 
     addExchange = (server, exchange, routing_key) => {
+        const evt_key = `${server}:${exchange}:${routing_key}`;
+        addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
-        exchanges.push({ server, exchange, routing_key });
-        console.log('ex', exchanges);
+        exchanges.push({ server, exchange, routing_key, evt_key, data: {} });
         this.setState(state => ({ exchanges }));
     }
 
-    removeExchange = (server, exchange, routing_key) => {
-        const exchanges = this.state.exchanges.filter(ex => ex.server !== server || ex.exchange !== exchange || ex.routing_key !== routing_key);
+
+    removeExchange = evt_key => {
+        removeListener(evt_key);
+        const index = this.state.exchanges.findIndex(ex => ex.evt_key == evt_key);
+        const exchanges = this.state.exchanges.slice();
+        exchanges.splice(index, 1);
         this.setState(state => ({ exchanges }));
     }
+
 
     openModal = () => { this.setState(state => ({ modal_isOpen: true })) }
 
+
     closeModal = () => { this.setState(state => ({ modal_isOpen: false })) }
+
 
     handleSubmit = d => {
         console.log('request sent');
@@ -52,6 +60,16 @@ export class App extends Component {
             }
         });
     }
+
+
+    renderExchanges = () => {
+        return this.state.exchanges.map((exchange, i) => (
+            <Grid item xs={6} md={4} key={i}>
+                <Exchange {...exchange} closeHandler={this.removeExchange}/>
+            </Grid>
+        ))
+    }
+
 
     render() {
         const { modal_isOpen } = this.state;

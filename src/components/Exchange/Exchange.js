@@ -8,49 +8,53 @@ import './Exchange.scss';
 
 export class Exchange extends Component {
     state = {
-        data: {},
         level: 2,
         isPaused: false,
         isClosed: false
     };
 
+    //data = this.props.
+
     json_ref = React.createRef();
+    
 
-    eventHandler = (d) => {
-        if (!this.state.isPaused) this.setState(state => ({ data: d }));
+    shouldComponentUpdate = (next_props, next_state) => {
+        return !(this.state.isPaused && next_state.isPaused);
     }
 
-    componentDidMount = () => {
-        const event_key = `${this.props.server}:${this.props.exchange}:${this.props.routing_key || ''}`;
-        addListener(event_key, this.eventHandler);
+
+    componentDidUpdate = (prev_props, prev_state) => {
+        const new_data = JSON.stringify(this.props.data) !== JSON.stringify(prev_props.data);
+        const unpaused = prev_state.isPaused && !this.state.isPaused;
+        if (new_data || unpaused) {
+            console.log('exchange updated', this.props);
+            const old_child = this.json_ref.current.firstElementChild;
+            const new_child = renderjson.set_icons('chevron_right','expand_more').set_show_to_level(this.state.level)(this.props.data.content)
+            this.json_ref.current.replaceChild(new_child, old_child);
+        }
     }
 
-    componentDidUpdate = () => {
-        const old_child = this.json_ref.current.firstElementChild;
-        const new_child = renderjson.set_icons('chevron_right','expand_more').set_show_to_level(this.state.level)(this.state.data.content)
-        this.json_ref.current.replaceChild(new_child, old_child);
-    }
 
-    componentWillUnmount = () => {
-        removeListener(this.props.exchange, this.eventHandler);
-    }
+    updateLevel = new_level => { this.setState(state => ({ level: new_level })) }
 
-    updateLevel = (new_level) => { this.setState(state => ({ level: new_level })) }
 
     togglePlayback = () => { this.setState(state => ({ isPaused: !state.isPaused })) }
 
+
     toggleWindow = () => { this.setState(state => ({ isClosed: !state.isClosed })) }
     
+
     closeHandler = () => {
-        this.props.closeHandler(this.props.server, this.props.exchange, this.props.routing_key);
+        this.props.closeHandler(this.props.evt_key);
     }
 
-    isEmpty = obj => Object.values(obj).length;
+    
+    isEmpty = obj => !Object.values(obj).length;
     
 
     render() {
-        const { exchange, server, routing_key } = this.props;
-        const { isPaused, isClosed, data } = this.state;
+        const { exchange, server, routing_key, data = {} } = this.props;
+        const { isPaused, isClosed } = this.state;
         return (
             <div className='exchange'>
                 <div className='heading'>
