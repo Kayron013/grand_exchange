@@ -3,8 +3,8 @@ const express = require('express'),
     app = express(),
     http = require('http').Server(app),
     io = require('socket.io')(http),
-    amqp = require('amqplib/callback_api'),
-    zmq = require('zmq');
+    amqp = require('amqplib/callback_api');
+    //zmq = require('zmq');
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
