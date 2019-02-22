@@ -42,31 +42,35 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     try {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
-            if (err) res.json({ status: 'error', error: err })
-            else {
-                console.log(server, exchange, routing_key, is_durable);
-                conn.createChannel((err, ch) => {
+            if (err || !conn) { 
+                res.json( { status:"error", error: err } );
+            else{
+            }
+                console.log(username, password, server, exchange, routing_key, is_durable);
                     ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+                conn.createChannel((err, ch) => {
                     ch.assertQueue('', { exclusive: true }, (err, q) => {
-                        ch.bindQueue(q.queue, exchange, routing_key);
                         connections[server] = {
-                            channel: ch,
-                            exchanges: {
-                                [exchange]: {
-                                    routes: {
-                                        [routing_key]: { connections: 1 }
+                        ch.bindQueue(q.queue, exchange, routing_key);
                                     },
+                                    routes: {
+                            exchanges: {
+                            channel: ch,
                                 }
+                                [exchange]: {
+                                        [routing_key]: { connections: 1 }
                             }
                         };
                         consume(server, exchange, routing_key, res, ch, q);
-                    });
-                });
+            });            
+
             }
+                    });
         });
     }
     catch (err) {
         return { status: 'error', err };
+        console.log("invalid connection");
     }
     
 }
