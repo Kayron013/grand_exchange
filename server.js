@@ -46,28 +46,43 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
 }
 
 
-const exchangeExists = (ex, conn) => new Promise((resolve, reject) => {
+const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject) => {
     conn.createChannel((err, ch) => {
-        ch.on('error', _ => resolve(false));
-        ch.checkExchange(ex, (err, ok) => ok ? resolve(true) : null);
+        ch.on('error', err => {
+            switch (err.code) {
+                case 404:
+                    resolve([false, 'Exchange Does Not Exist']);
+                    break;
+                case 406:
+                    resolve([false, 'Exchange Declared With Incorrect Types']);
+                    break;
+            }
+            console.log(err);
+        });
+        ch.checkExchange(ex);
+        ch.assertExchange(ex, rk ? 'direct' : 'fanout', { durable: is_durable }, (err, ok) => ok ? resolve([true]) : null);
     });
 });
 
 
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
-        amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
-            
+    let calls = 0;
+    amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
+        calls++;
             if (err) {
-                console.log('**connection error**', err);
-                res.json({ status: 'error', error: 'Authentication Failed' })
+                console.log('**connection error**', err, err.code);
+                if (calls > 1) return;
+                if (!err.code) res.json({ status: 'error', error: 'Authentication Failed' });
+                else if (err.code == 'ETIMEDOUT') res.json({ status: 'error', error: 'Timed Out: Check Server IP' });
             }
             else {
                 console.log(server, exchange, routing_key, is_durable);
                 conn.createChannel(async (err, ch) => {
-                    ch.on('error', err => console.log('Channel Error', err));
-                    if (err) console.log('channel error', err);
+                    ch.on('error', err => console.log('Channel Error[1]', err));
+                    if (err) console.log('channel error[2]', err);
                     else {
-                        if (await exchangeExists(exchange, conn)) {                  
+                        const test = await testExchange(exchange, routing_key, is_durable, conn);
+                        if (test[0]) {          
                             ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
                             ch.assertQueue('', { exclusive: true }, (err, q) => {
                                 ch.bindQueue(q.queue, exchange, routing_key);
@@ -88,19 +103,19 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                         }
                         else {
                             conn.close();
-                            res.json({ status: 'error', error: 'Exchange Does Not Exist' });
-                            console.log('Exchange Does Not Exist')
+                            res.json({ status: 'error', error: test[1] });
+                            console.log(test[1])
                         }
                     }
                 });
             }
         });
-    
 }
 
 
 const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, res, conn, ch) => {
-    if (await exchangeExists(exchange, conn)) {
+    const test = await testExchange(exchange, routing_key, is_durable, conn);
+    if (test[0]) {
         ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
         ch.assertQueue('', { exclusive: true }, (err, q) => {
             ch.bindQueue(q.queue, exchange, routing_key);
@@ -113,8 +128,8 @@ const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, 
         });
     }
     else {
-        res.json({ status: 'error', error: 'Exchange Does Not Exist' });
-        console.log('Exchange Does Not Exist')
+        res.json({ status: 'error', error: test[1] });
+        console.log(test[1])
     }
 }
 
