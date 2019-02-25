@@ -19,7 +19,7 @@ export class Exchange extends Component {
     
 
     shouldComponentUpdate = (next_props, next_state) => {
-        return !(this.state.isPaused && next_state.isPaused)  || this.state.level != next_state.level;
+        return !(this.state.isPaused && next_state.isPaused) || this.state.level != next_state.level || !(this.state.isClosed && next_state.isClosed);
     }
 
 
@@ -30,7 +30,7 @@ export class Exchange extends Component {
         if (new_data || unpaused || new_state) {
             console.log('exchange updated', this.props);
             const old_child = this.json_ref.current.firstElementChild;
-            const new_child = renderjson.set_show_to_level(this.state.level)(this.props.data.content)
+            const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.props.data.content)
             this.json_ref.current.replaceChild(new_child, old_child);
         }
     }
@@ -39,29 +39,26 @@ export class Exchange extends Component {
     updateLevel = new_level => { this.setState(state => ({ level: new_level })) }
 
     upGradeLevel = () => {
-        let depth = this.getdepth(this.props.data.content)-1;
+        let depth = this.getdepth(this.props.data.content) - 1;
         let level = this.state.level;
-        level = depth > level ? level+1:depth;
-        // console.log("depth is ",depth, "level is ",level);
+        level = depth > level ? level + 1 : depth;
         this.setState({ level });
     }
 
-    downGradeLevel = () => { 
-        let depth = this.getdepth(this.props.data.content)-1;
+    downGradeLevel = () => {
         let level = this.state.level;
-        level = level==0 ? level : level-1;
-        // console.log("depth is ",depth, "level is ",level);
+        level = level == 0 ? level : level - 1;
         this.setState({ level });
     }
 
-    getdepth =function(object) {
+    getdepth = object => {
         let level = 1;
-        var key;
+        let key;
         for(key in object) {
             // if (!object.hasOwnProperty(key)) continue;
 
             if(typeof object[key] == 'object'){
-                var depth = this.getdepth (object[key]) + 1;
+                let depth = this.getdepth (object[key]) + 1;
                 level = Math.max(depth, level);
             }
         }
@@ -92,13 +89,13 @@ export class Exchange extends Component {
                         <Icon>close</Icon>
                     </Fab>
                     <Typography variant='h5' className='exchange-name'>
-                        <Link color='secondary' href={`#`} target='blank'>{exchange + (routing_key ? ' (' +routing_key+ ')' : '')}</Link>
+                        <Link color='secondary' href={`http://${server}:15672/#/exchanges/%2F/${exchange}`} target='blank'>{exchange + (routing_key ? ' (' +routing_key+ ')' : '')}</Link>
                     </Typography>
                     <Fab color='default' className='add-button' size='small' onClick={this.upGradeLevel} >
                         <Icon>add</Icon>
                     </Fab>
                     <Typography variant='subtitle1' className='server'>
-                        <Link color='secondary' href={`http://${server}`} target='blank'>{server}</Link>
+                        <Link color='secondary' href={`http://${server}:15672`} target='blank'>{server}</Link>
                     </Typography>
                     <Fab color='default' className='substract-button' size='small' onClick={this.downGradeLevel}>
                         <Icon>remove</Icon>

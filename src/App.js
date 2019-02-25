@@ -55,7 +55,7 @@ export class App extends Component {
             requestConnection(d, res => {
                 console.log('res', res);
                 if (res.error) {
-                    alert('Error connecting to exchange');
+                    alert(res.error);
                     console.log('Error connecting to exchange', res.error);
                 }
                 else {

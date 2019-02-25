@@ -42,8 +42,9 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
         catch (err) {
             io.emit(event_key, { timestamp: Date.now(), content: { unparsable: null } });
         }
-        }, { noAck: true });
+    }, { noAck: true });
 }
+
 
 const exchangeExists = (ex, conn) => new Promise((resolve, reject) => {
     conn.createChannel((err, ch) => {
@@ -51,6 +52,7 @@ const exchangeExists = (ex, conn) => new Promise((resolve, reject) => {
         ch.checkExchange(ex, (err, ok) => ok ? resolve(true) : null);
     });
 });
+
 
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
