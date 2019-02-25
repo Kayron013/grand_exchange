@@ -163,6 +163,7 @@ export class ExchangeForm extends Component {
     }
 
     handleChange = field => evt => {
+       
         evt.persist();
         this.setState(state => ({ [field]: evt.target.value }));
     }
@@ -330,7 +331,7 @@ export class ExchangeForm extends Component {
                     />
                 </div>
                 <div className='submit-area'>
-                    <Button color='secondary' variant='contained' onClick={this.handleSubmit}>Connect</Button>
+                    <Button type="button" color='secondary' variant='contained' onClick={this.handleSubmit}>Connect</Button>
                 </div>
             </form>
         )

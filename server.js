@@ -31,10 +31,15 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
     const event_key = `${server}:${exchange}:${routing_key}`;
         console.log('consuming; evt key:', event_key);
         res.json({ status: 'ok' });
-        ch.consume(q.queue, msg => {
+    ch.consume(q.queue, msg => {
+        try {
             const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
             io.emit(event_key, data);
             //console.log('emitted:', data);
+        }
+        catch (err) {
+            io.emit(event_key, { timestamp: Date.now(), content: { unparsable: null } });
+        }
         }, { noAck: true });
 }
 
