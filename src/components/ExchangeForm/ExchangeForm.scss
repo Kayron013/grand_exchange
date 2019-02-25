@@ -1,6 +1,7 @@
 .exchange-form {
     margin: 10rem;
     padding: 10px;
+    background: white;
     .form-heading {
         text-align: center;
     }
@@ -9,7 +10,7 @@
             text-align: initial;
         }
     }
-    form {
+    .exchange-input {
         display: flex;
         justify-content: space-evenly;
         flex-wrap: wrap;
@@ -24,6 +25,7 @@
             }
         }
     }
+
     .submit-area {
         display: flex;
         justify-content: center;

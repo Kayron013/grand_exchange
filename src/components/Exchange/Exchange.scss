@@ -1,3 +1,4 @@
+
 .exchange {
     color: white;
     font-family: 'Roboto';
@@ -5,12 +6,8 @@
     background: #2c1748;
     padding: 6px;
     border-radius: 18px;
-    .close-btn {
-        float: left;
-        left: 0;
-        top: 0;
-        margin-right: -40px;
-    }
+
+
     .heading{
         padding-bottom: 10px;
         .exchange-name {
@@ -21,13 +18,46 @@
             text-align: center;
             // font-size: 1.5vw;
         }
+        .close-btn {
+            float: left;
+            // left: -14px;
+            // top: -18px;
+            margin-right: -40px;
+        }
+        .lvl-button-group {
+            display: inline-flex;
+            float: right;
+            background-color: #2c1748;
+            margin-left: -148px;
+            .btn {
+                color: white;
+            }
+            .btn:hover {
+                background-color: #00000047;
+            }
+        }
+        // .add-button{
+        //     float: right;
+        //     right: 20px;
+        //     bottom: 35px;
+        //     background-color: #663d9d;
+        // }
+        // .substract-button{
+        //     color:red;
+        //     float: right;
+        //     right: -20px;
+        //     bottom: 15px;
+        //     background-color: #663d9d;
+        // }
     }
     .window {
         border-radius: 15px;
         overflow: hidden;
+        width:100%;
         .json {
+
             background-color: #00182b;
-            height: 400px;
+            height: 500px;
             padding: 0 18px;
             overflow: auto;
             transition: height 1.5s;

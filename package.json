@@ -1,12 +1,14 @@
 {
-  "name": "queue_viewer",
+  "name": "grand_exchange",
   "version": "0.1.0",
-  "description": "queue viewer",
+  "description": "grand_exchange",
   "main": "index.js",
   "author": "Angel Campbell",
   "license": "MIT",
   "dependencies": {
     "@material-ui/core": "^3.9.2",
+    "@material-ui/icons": "^3.0.2",
+    "@material-ui/lab": "^3.0.0-alpha.30",
     "amqplib": "^0.5.3",
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
@@ -14,7 +16,8 @@
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
     "socket.io": "^2.2.0",
-    "socket.io-client": "^2.2.0"
+    "socket.io-client": "^2.2.0",
+    "zmq": "^2.15.3"
   },
   "devDependencies": {
     "@babel/core": "^7.3.3",
@@ -36,6 +39,7 @@
   "scripts": {
     "start": "node server.js",
     "build": "webpack --mode production",
-    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\" \"reload -p 8084 -d dist\""
+    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\" \"reload -p 8084 -d dist\"",
+    "qstart": "webpack --mode development & node server.js"
   }
 }

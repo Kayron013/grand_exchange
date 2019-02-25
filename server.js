@@ -4,6 +4,7 @@ const express = require('express'),
     http = require('http').Server(app),
     io = require('socket.io')(http),
     amqp = require('amqplib/callback_api');
+    //zmq = require('zmq');
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
@@ -13,13 +14,15 @@ app.get('/', (req, res) => res.sendFile('index'));
 
 
 app.use((req, res, next) => {
-    res.header({
-    'Access-Control-Allow-Origin': req.headers.origin.includes('localhost') ? req.headers.origin : '',
-    "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
-    'Vary': 'Origin'
-    });
+    if (req.headers.origin) {
+        res.header({
+            'Access-Control-Allow-Origin': req.headers.origin.includes('localhost') ? req.headers.origin : '',
+            "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
+            'Vary': 'Origin'
+        });
+    }
     next();
-    });
+});
 
 
 const connections = {};
@@ -30,56 +33,104 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
     const event_key = `${server}:${exchange}:${routing_key}`;
         console.log('consuming; evt key:', event_key);
         res.json({ status: 'ok' });
-        ch.consume(q.queue, msg => {
+    ch.consume(q.queue, msg => {
+        try {
             const data = { timestamp: Date.now(), content: JSON.parse(msg.content) }
             io.emit(event_key, data);
             //console.log('emitted:', data);
-        }, { noAck: true });
+        }
+        catch (err) {
+            io.emit(event_key, { timestamp: Date.now(), content: { unparsable: null } });
+        }
+    }, { noAck: true });
 }
+
+
+const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject) => {
+    conn.createChannel((err, ch) => {
+        ch.on('error', err => {
+            switch (err.code) {
+                case 404:
+                    resolve([false, 'Exchange Does Not Exist']);
+                    break;
+                case 406:
+                    resolve([false, 'Exchange Declared With Incorrect Types']);
+                    break;
+            }
+            console.log(err);
+        });
+        ch.checkExchange(ex);
+        ch.assertExchange(ex, rk ? 'direct' : 'fanout', { durable: is_durable }, (err, ok) => ok ? resolve([true]) : null);
+    });
+});
 
 
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
-    try {
-        amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
-            if (err) { throw { message: 'connection failed', error: err } }
-            console.log(server, exchange, routing_key, is_durable);
-            conn.createChannel((err, ch) => {
-                ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
-                ch.assertQueue('', { exclusive: true }, (err, q) => {
-                    ch.bindQueue(q.queue, exchange, routing_key);
-                    connections[server] = {
-                        channel: ch,
-                        exchanges: {
-                            [exchange]: {
-                                routes: {
-                                    [routing_key]: { connections: 1 }
-                                },
-                            }
+    let calls = 0;
+    amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
+        calls++;
+            if (err) {
+                console.log('**connection error**', err, err.code);
+                if (calls > 1) return;
+                if (!err.code) res.json({ status: 'error', error: 'Authentication Failed' });
+                else if (err.code == 'ETIMEDOUT') res.json({ status: 'error', error: 'Timed Out: Check Server IP' });
+            }
+            else {
+                console.log(server, exchange, routing_key, is_durable);
+                conn.createChannel(async (err, ch) => {
+                    ch.on('error', err => console.log('Channel Error[1]', err));
+                    if (err) console.log('channel error[2]', err);
+                    else {
+                        const test = await testExchange(exchange, routing_key, is_durable, conn);
+                        if (test[0]) {          
+                            ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+                            ch.assertQueue('', { exclusive: true }, (err, q) => {
+                                ch.bindQueue(q.queue, exchange, routing_key);
+                                connections[server] = {
+                                    connection: conn,
+                                    channel: ch,
+                                    credentials: { username, password },
+                                    exchanges: {
+                                        [exchange]: {
+                                            routes: {
+                                                [routing_key]: { connections: 1 }
+                                            },
+                                        }
+                                    }
+                                };
+                                consume(server, exchange, routing_key, res, ch, q);
+                            });
                         }
-                    };
-                    consume(server, exchange, routing_key, res, ch, q);
+                        else {
+                            conn.close();
+                            res.json({ status: 'error', error: test[1] });
+                            console.log(test[1])
+                        }
+                    }
                 });
-            });
+            }
         });
-    }
-    catch (err) {
-        return { status: 'error', err };
-    }
-    
 }
 
 
-const reuseChannel = ({ server, exchange, routing_key = '', is_durable }, res, ch) => {
-    ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
-    ch.assertQueue('', { exclusive: true }, (err, q) => {
-        ch.bindQueue(q.queue, exchange, routing_key);
-        connections[server].exchanges[exchange] = {
-            routes: {
-                [routing_key]: { connections: 1 }
-            },
-        };
-        consume(server, exchange, routing_key, res, ch, q);
-    });
+const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, res, conn, ch) => {
+    const test = await testExchange(exchange, routing_key, is_durable, conn);
+    if (test[0]) {
+        ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+        ch.assertQueue('', { exclusive: true }, (err, q) => {
+            ch.bindQueue(q.queue, exchange, routing_key);
+            connections[server].exchanges[exchange] = {
+                routes: {
+                    [routing_key]: { connections: 1 }
+                },
+            };
+            consume(server, exchange, routing_key, res, ch, q);
+        });
+    }
+    else {
+        res.json({ status: 'error', error: test[1] });
+        console.log(test[1])
+    }
 }
 
 
@@ -106,13 +157,20 @@ app.post('/', (req, res) => {
             }
         }
         else {
-            reuseChannel(req.body, res, connection.channel);
+            reuseChannel(req.body, res, connection.connection, connection.channel);
         }
     }
     else {
         makeConnection(req.body, res);
     }
-})
+});
+
+
+// const socket = zmq.socket('sub');
+// socket.bind('tcp://10.50.78.151:5556', (err) => err ? console.log(err) : console.log('listening'));
+// // console.log('zmq "connected"');
+// // socket.subscribe('');
+// socket.on('message', (topic, message) => console.log(topic, message));
 
 
 // const contents = [
