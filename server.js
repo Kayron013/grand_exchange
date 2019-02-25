@@ -14,13 +14,15 @@ app.get('/', (req, res) => res.sendFile('index'));
 
 
 app.use((req, res, next) => {
-    res.header({
-    'Access-Control-Allow-Origin': req.headers.origin.includes('localhost') ? req.headers.origin : '',
-    "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
-    'Vary': 'Origin'
-    });
+    if (req.headers.origin) {
+        res.header({
+            'Access-Control-Allow-Origin': req.headers.origin.includes('localhost') ? req.headers.origin : '',
+            "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
+            'Vary': 'Origin'
+        });
+    }
     next();
-    });
+});
 
 
 const connections = {};
@@ -43,51 +45,75 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
         }, { noAck: true });
 }
 
+const exchangeExists = (ex, conn) => new Promise((resolve, reject) => {
+    conn.createChannel((err, ch) => {
+        ch.on('error', _ => resolve(false));
+        ch.checkExchange(ex, (err, ok) => ok ? resolve(true) : null);
+    });
+});
 
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
-    try {
         amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
-            if (err) res.json({ status: 'error', error: err })
+            
+            if (err) {
+                console.log('**connection error**', err);
+                //res.send({ status: 'error', error: err })
+            }
             else {
                 console.log(server, exchange, routing_key, is_durable);
-                conn.createChannel((err, ch) => {
-                    ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
-                    ch.assertQueue('', { exclusive: true }, (err, q) => {
-                        ch.bindQueue(q.queue, exchange, routing_key);
-                        connections[server] = {
-                            channel: ch,
-                            exchanges: {
-                                [exchange]: {
-                                    routes: {
-                                        [routing_key]: { connections: 1 }
-                                    },
-                                }
-                            }
-                        };
-                        consume(server, exchange, routing_key, res, ch, q);
-                    });
+                conn.createChannel(async (err, ch) => {
+                    ch.on('error', err => console.log('Channel Error', err));
+                    if (err) console.log('channel error', err);
+                    else {
+                        if (await exchangeExists(exchange, conn)) {                  
+                            ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+                            ch.assertQueue('', { exclusive: true }, (err, q) => {
+                                ch.bindQueue(q.queue, exchange, routing_key);
+                                connections[server] = {
+                                    connection: conn,
+                                    channel: ch,
+                                    credentials: { username, password },
+                                    exchanges: {
+                                        [exchange]: {
+                                            routes: {
+                                                [routing_key]: { connections: 1 }
+                                            },
+                                        }
+                                    }
+                                };
+                                consume(server, exchange, routing_key, res, ch, q);
+                            });
+                        }
+                        else {
+                            conn.close();
+                            res.json({ status: 'error', error: 'Exchange Does Not Exist' });
+                            console.log('Exchange Does Not Exist')
+                        }
+                    }
                 });
             }
         });
-    }
-    catch (err) {
-        return { status: 'error', err };
-    }
     
 }
 
 
-const reuseChannel = ({ server, exchange, routing_key = '', is_durable }, res, ch) => {
-    ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
-    ch.assertQueue('', { exclusive: true }, (err, q) => {
-        ch.bindQueue(q.queue, exchange, routing_key);
-        connections[server].exchanges[exchange] = {
-            routes: {
-                [routing_key]: { connections: 1 }
-            },
-        };
-        consume(server, exchange, routing_key, res, ch, q);
-    });
+const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, res, conn, ch) => {
+    if (await exchangeExists(exchange, conn)) {
+        ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+        ch.assertQueue('', { exclusive: true }, (err, q) => {
+            ch.bindQueue(q.queue, exchange, routing_key);
+            connections[server].exchanges[exchange] = {
+                routes: {
+                    [routing_key]: { connections: 1 }
+                },
+            };
+            consume(server, exchange, routing_key, res, ch, q);
+        });
+    }
+    else {
+        res.json({ status: 'error', error: 'Exchange Does Not Exist' });
+        console.log('Exchange Does Not Exist')
+    }
 }
 
 
@@ -114,7 +140,7 @@ app.post('/', (req, res) => {
             }
         }
         else {
-            reuseChannel(req.body, res, connection.channel);
+            reuseChannel(req.body, res, connection.connection, connection.channel);
         }
     }
     else {
