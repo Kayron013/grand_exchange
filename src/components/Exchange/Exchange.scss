@@ -20,22 +20,35 @@
         }
         .close-btn {
             float: left;
-            left: 10px;
-            top: 0;
+            // left: -14px;
+            // top: -18px;
             margin-right: -40px;
         }
-        .add-button{
+        .lvl-button-group {
+            display: inline-flex;
             float: right;
-            right: 20px;
-            bottom: 35px;
-         
+            background-color: #2c1748;
+            margin-left: -148px;
+            .btn {
+                color: white;
+            }
+            .btn:hover {
+                background-color: #00000047;
+            }
         }
-        .substract-button{
-            color:red;
-            float: right;
-            right: -20px;
-            bottom: 15px;
-        }
+        // .add-button{
+        //     float: right;
+        //     right: 20px;
+        //     bottom: 35px;
+        //     background-color: #663d9d;
+        // }
+        // .substract-button{
+        //     color:red;
+        //     float: right;
+        //     right: -20px;
+        //     bottom: 15px;
+        //     background-color: #663d9d;
+        // }
     }
     .window {
         border-radius: 15px;

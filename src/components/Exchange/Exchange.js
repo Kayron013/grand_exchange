@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
-import { Fab, Button, Icon, Typography, Link ,remove,add} from "@material-ui/core";
+import { Fab, Button, Icon, Typography, Link } from "@material-ui/core";
+import { ToggleButtonGroup } from '@material-ui/lab';
 import { renderjson } from '../../lib/renderjson/renderjson';
 import moment from "moment";
-import { addListener, removeListener } from "../../services/socket";
 import './Exchange.scss';
 
 
@@ -12,8 +12,6 @@ export class Exchange extends Component {
         isPaused: false,
         isClosed: false
     };
-
-    //data = this.props.
 
     json_ref = React.createRef();
     
@@ -87,18 +85,20 @@ export class Exchange extends Component {
                     <Fab color='default' className='close-btn' size='small' onClick={this.closeHandler}>
                         <Icon>close</Icon>
                     </Fab>
+                    <ToggleButtonGroup className='lvl-button-group'>
+                        <Button className='btn' onClick={this.downGradeLevel}>
+                            <Icon>remove</Icon>
+                        </Button>
+                        <Button className='btn' onClick={this.upGradeLevel}>
+                            <Icon>add</Icon>
+                        </Button>
+                    </ToggleButtonGroup>
                     <Typography variant='h5' className='exchange-name'>
                         <Link color='secondary' href={`http://${server}:15672/#/exchanges/%2F/${exchange}`} target='blank'>{exchange + (routing_key ? ' (' +routing_key+ ')' : '')}</Link>
                     </Typography>
-                    <Fab color='default' className='add-button' size='small' onClick={this.upGradeLevel} >
-                        <Icon>add</Icon>
-                    </Fab>
                     <Typography variant='subtitle1' className='server'>
                         <Link color='secondary' href={`http://${server}:15672`} target='blank'>{server}</Link>
                     </Typography>
-                    <Fab color='default' className='substract-button' size='small' onClick={this.downGradeLevel}>
-                        <Icon>remove</Icon>
-                    </Fab>                    
                 </div>
                 <div className='window'>
                     <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>
