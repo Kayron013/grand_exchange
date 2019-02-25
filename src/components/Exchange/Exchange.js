@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Fab, Button, Icon, Typography, Link } from "@material-ui/core";
+import { Fab, Button, Icon, Typography, Link ,remove,add} from "@material-ui/core";
 import { renderjson } from '../../lib/renderjson/renderjson';
 import moment from "moment";
 import { addListener, removeListener } from "../../services/socket";
@@ -8,7 +8,7 @@ import './Exchange.scss';
 
 export class Exchange extends Component {
     state = {
-        level: 2,
+        level: 1,
         isPaused: false,
         isClosed: false
     };
@@ -19,17 +19,18 @@ export class Exchange extends Component {
     
 
     shouldComponentUpdate = (next_props, next_state) => {
-        return !(this.state.isPaused && next_state.isPaused);
+        return !(this.state.isPaused && next_state.isPaused)  || this.state.level != next_state.level;
     }
 
 
     componentDidUpdate = (prev_props, prev_state) => {
         const new_data = JSON.stringify(this.props.data) !== JSON.stringify(prev_props.data);
         const unpaused = prev_state.isPaused && !this.state.isPaused;
-        if (new_data || unpaused) {
+        const new_state = this.state !== prev_state;
+        if (new_data || unpaused || new_state) {
             console.log('exchange updated', this.props);
             const old_child = this.json_ref.current.firstElementChild;
-            const new_child = renderjson.set_icons('chevron_right','expand_more').set_show_to_level(this.state.level)(this.props.data.content)
+            const new_child = renderjson.set_show_to_level(this.state.level)(this.props.data.content)
             this.json_ref.current.replaceChild(new_child, old_child);
         }
     }
@@ -37,6 +38,35 @@ export class Exchange extends Component {
 
     updateLevel = new_level => { this.setState(state => ({ level: new_level })) }
 
+    upGradeLevel = () => {
+        let depth = this.getdepth(this.props.data.content)-1;
+        let level = this.state.level;
+        level = depth > level ? level+1:depth;
+        // console.log("depth is ",depth, "level is ",level);
+        this.setState({ level });
+    }
+
+    downGradeLevel = () => { 
+        let depth = this.getdepth(this.props.data.content)-1;
+        let level = this.state.level;
+        level = level==0 ? level : level-1;
+        // console.log("depth is ",depth, "level is ",level);
+        this.setState({ level });
+    }
+
+    getdepth =function(object) {
+        let level = 1;
+        var key;
+        for(key in object) {
+            // if (!object.hasOwnProperty(key)) continue;
+
+            if(typeof object[key] == 'object'){
+                var depth = this.getdepth (object[key]) + 1;
+                level = Math.max(depth, level);
+            }
+        }
+        return level;
+    }
 
     togglePlayback = () => { this.setState(state => ({ isPaused: !state.isPaused })) }
 
@@ -64,9 +94,15 @@ export class Exchange extends Component {
                     <Typography variant='h5' className='exchange-name'>
                         <Link color='secondary' href={`#`} target='blank'>{exchange + (routing_key ? ' (' +routing_key+ ')' : '')}</Link>
                     </Typography>
+                    <Fab color='default' className='add-button' size='small' onClick={this.upGradeLevel} >
+                        <Icon>add</Icon>
+                    </Fab>
                     <Typography variant='subtitle1' className='server'>
                         <Link color='secondary' href={`http://${server}`} target='blank'>{server}</Link>
                     </Typography>
+                    <Fab color='default' className='substract-button' size='small' onClick={this.downGradeLevel}>
+                        <Icon>remove</Icon>
+                    </Fab>                    
                 </div>
                 <div className='window'>
                     <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>
