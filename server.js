@@ -59,7 +59,7 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
             
             if (err) {
                 console.log('**connection error**', err);
-                //res.send({ status: 'error', error: err })
+                res.json({ status: 'error', error: 'Authentication Failed' })
             }
             else {
                 console.log(server, exchange, routing_key, is_durable);
