@@ -19,18 +19,18 @@ export class Exchange extends Component {
     
 
     shouldComponentUpdate = (next_props, next_state) => {
-        return !(this.state.isPaused && next_state.isPaused) || this.state.level != next_state.level || !(this.state.isClosed && next_state.isClosed);
+        return !(this.state.isPaused && next_state.isPaused || this.state.isClosed && next_state.isClosed) || this.state.level != next_state.level;
     }
 
 
     componentDidUpdate = (prev_props, prev_state) => {
         const new_data = JSON.stringify(this.props.data) !== JSON.stringify(prev_props.data);
-        const unpaused = prev_state.isPaused && !this.state.isPaused;
-        const new_state = this.state !== prev_state;
-        if (new_data || unpaused || new_state) {
+        const new_level = this.state.level !== prev_state.level;
+        if (new_data || new_level) {
             console.log('exchange updated', this.props);
             const old_child = this.json_ref.current.firstElementChild;
             const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.props.data.content)
+            console.log('new json view constructed')
             this.json_ref.current.replaceChild(new_child, old_child);
         }
     }
@@ -41,14 +41,13 @@ export class Exchange extends Component {
     upGradeLevel = () => {
         let depth = this.getdepth(this.props.data.content) - 1;
         let level = this.state.level;
-        level = depth > level ? level + 1 : depth;
-        this.setState({ level });
+        if(depth > level) this.setState({ level: level + 1 });
+        
     }
 
     downGradeLevel = () => {
         let level = this.state.level;
-        level = level == 0 ? level : level - 1;
-        this.setState({ level });
+        if(level > 0) this.setState({ level: level - 1 });
     }
 
     getdepth = object => {
