@@ -30,6 +30,7 @@ global.connections = connections;
 
 
 const consume = (server, exchange, routing_key, res, ch, q) => {
+    console.log("connection is ", connections);
     const event_key = `${server}:${exchange}:${routing_key}`;
         console.log('consuming; evt key:', event_key);
         res.json({ status: 'ok' });
@@ -68,6 +69,7 @@ const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject)
 const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     let calls = 0;
     amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
+    
         calls++;
             if (err) {
                 console.log('**connection error**', err, err.code);
@@ -143,8 +145,8 @@ const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
 }
 
 app.post('/', (req, res) => {
-    const { server, exchange, routing_key } = req.body;
-    if (connections[server]) {
+    const { username, password, server, exchange, routing_key } = req.body;
+    if (connections[server] && connections[server].credentials.username==username && connections[server].credentials.password==password) {
         const connection = connections[server];
         if (connection.exchanges[exchange]) {
             const route = connection.exchanges[exchange].routes[routing_key];
