@@ -15,8 +15,8 @@ export const removeListener = (evt, handler) => socket.listeners(evt).pop();
 export const emitEvent = (evt, args) => socket.emit(evt, args);
 
 export const requestConnection = (args, fn) => {
-    const res = fetch(url, { method: 'post', body: JSON.stringify(args), headers: { "Content-Type": "application/json" } })
-        .then(d => { console.log(d); return d.json() })
+    fetch(url, { method: 'post', body: JSON.stringify(args), headers: { "Content-Type": "application/json" } })
+        .then(d => d.json())
         .then(fn);
     //socket.emit('connection-request', args);
     //socket.once('connection-response', res => fn(res));

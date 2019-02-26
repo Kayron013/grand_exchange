@@ -16,7 +16,7 @@ export class App extends Component {
     eventHandler = evt_key => d => {
         const exchanges = JSON.parse(JSON.stringify(this.state.exchanges));
         const exchange = exchanges.find(ex => ex.evt_key == evt_key);
-        exchange.data = d;//JSON.stringify(d);
+        exchange.data = d;
         this.setState(state => ({ exchanges }));
     }
 
@@ -56,7 +56,7 @@ export class App extends Component {
                 console.log('res', res);
                 if (res.error) {
                     alert(res.error);
-                    console.log('Error connecting to exchange', res.error);
+                    console.log('Error:', res.error);
                 }
                 else {
                     this.addExchange(d.server, d.exchange, d.routing_key);
