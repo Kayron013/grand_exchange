@@ -10,13 +10,16 @@
 
     .heading{
         padding-bottom: 10px;
-        .exchange-name {
-            text-align: center;
-            // font-size: 2.2vw;
-        }
-        .server {
-            text-align: center;
-            // font-size: 1.5vw;
+        .exchange-title{
+            height: 60px;
+            .exchange-name {
+                text-align: center;
+                // font-size: 2.2vw;
+            }
+            .server {
+                text-align: center;
+                // font-size: 1.5vw;
+            }
         }
         .close-btn {
             float: left;
@@ -69,7 +72,7 @@
                 .number { color: #fff000; }
                 .boolean { color: #fff000; }
                 .key    { color: #ffffff; }
-                .keyword { color: blue; }
+                .keyword { color: #ff44b3; }
                 .object.syntax { color: #00fff0; }
                 .array.syntax  { color: #00fff0; }
             }

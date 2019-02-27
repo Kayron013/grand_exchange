@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-ui/core';
 import { Exchange } from './components/Exchange/Exchange';
-import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
+import ExchangeForm from './components/ExchangeForm/ExchangeForm';
 import { requestConnection, addListener, removeListener } from "./services/socket";
 import './App.scss';
 
@@ -17,16 +17,26 @@ export class App extends Component {
         const exchanges = JSON.parse(JSON.stringify(this.state.exchanges));
         const exchange = exchanges.find(ex => ex.evt_key == evt_key);
         exchange.data = d;
-        this.setState(state => ({ exchanges }));
+        this.setState({ exchanges });
+        console.log(evt_key, '   ', d);
     }
 
 
-    addExchange = (server, exchange, routing_key) => {
-        const evt_key = `${server}:${exchange}:${routing_key}`;
+    addRmqExchange = (server, exchange, routing_key) => {
+        const evt_key = `rmq:${server}:${exchange}:${routing_key}`;
         addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
-        exchanges.push({ server, exchange, routing_key, evt_key, data: {} });
-        this.setState(state => ({ exchanges }));
+        exchanges.push({ type: 'rmq', server, exchange, routing_key, evt_key, data: {} });
+        this.setState({ exchanges });
+    }
+
+
+    addZmqExchange = server => {
+        const evt_key = `zmq:${server}`;
+        addListener(evt_key, this.eventHandler(evt_key));
+        const exchanges = [...this.state.exchanges];
+        exchanges.push({ type: 'zmq', server, evt_key, data: {} });
+        this.setState({ exchanges });
     }
 
 
@@ -35,35 +45,39 @@ export class App extends Component {
         const index = this.state.exchanges.findIndex(ex => ex.evt_key == evt_key);
         const exchanges = this.state.exchanges.slice();
         exchanges.splice(index, 1);
-        this.setState(state => ({ exchanges }));
+        this.setState({ exchanges });
     }
 
 
-    openModal = () => { this.setState(state => ({ modal_isOpen: true })) }
+    openModal = () => { this.setState({ modal_isOpen: true }) }
 
 
-    closeModal = () => { this.setState(state => ({ modal_isOpen: false })) }
+    closeModal = () => { this.setState({ modal_isOpen: false }) }
 
 
     handleSubmit = d => {
-        console.log('request sent');
         const exchange_found = this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
         if (exchange_found) {
             alert('Already connected to this exchange');
         }
         else {
+            console.log('sending request');
             requestConnection(d, res => {
-                console.log('res', res);
                 if (res.error) {
                     alert(res.error);
-                    console.log('Error:', res.error);
+                    console.log('Server Error:', res.error);
                 }
                 else {
-                    this.addExchange(d.server, d.exchange, d.routing_key);
+                    switch (d.type) {
+                        case 'rmq':
+                            this.addRmqExchange(d.server, d.exchange, d.routing_key);
+                            break;
+                        case 'zmq':
+                            this.addZmqExchange(d.server);
+                    }
                 }
             }); 
         }
-        
     }
 
 

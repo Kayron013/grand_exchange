@@ -15,9 +15,15 @@ export const removeListener = (evt, handler) => socket.listeners(evt).pop();
 export const emitEvent = (evt, args) => socket.emit(evt, args);
 
 export const requestConnection = (args, fn) => {
-    fetch(url, { method: 'post', body: JSON.stringify(args), headers: { "Content-Type": "application/json" } })
+    let api_url = url;
+    switch (args.type) {
+        case 'rmq':
+            api_url += '/connect/rmq';
+            break;
+        case 'zmq':
+            api_url += '/connect/zmq';
+    }
+    fetch(api_url, { method: 'post', body: JSON.stringify(args), headers: { "Content-Type": "application/json" } })
         .then(d => d.json())
         .then(fn);
-    //socket.emit('connection-request', args);
-    //socket.once('connection-response', res => fn(res));
 }
