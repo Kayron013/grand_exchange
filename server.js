@@ -74,8 +74,20 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
             if (err) {
                 console.log('**connection error**', err, err.code);
                 if (calls > 1) return;
-                if (!err.code) res.json({ status: 'error', error: 'Authentication Failed' });
-                else if (err.code == 'ETIMEDOUT') res.json({ status: 'error', error: 'Timed Out: Check Server IP' });
+                switch (err.code) {
+                    case null:
+                        res.json({ status: 'error', error: 'Authentication Failed' });
+                        break;
+                    case 'ETIMEDOUT':
+                        res.json({ status: 'error', error: 'Timed Out' });
+                        break;
+                    case 'EHOSTUNREACH':
+                    case 'ENETUNREACH':
+                        res.json({ status: 'error', error: 'Server Unreachable' });
+                        break;
+                    case 'ECONNREFUSED':
+                        res.json({ status: 'error', error: 'Connection Refused' });
+                }
             }
             else {
                 console.log(server, exchange, routing_key, is_durable);
