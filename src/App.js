@@ -18,7 +18,6 @@ export class App extends Component {
         const exchange = exchanges.find(ex => ex.evt_key == evt_key);
         exchange.data = d;
         this.setState({ exchanges });
-        console.log(evt_key, '   ', d);
     }
 
 

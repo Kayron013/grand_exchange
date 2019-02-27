@@ -23,7 +23,7 @@ export default class RmqForm extends Component {
 
     handleChange = field => evt => {
         evt.persist();
-        this.setState(state => ({ [field]: evt.target.value }));
+        this.setState({ [field]: evt.target.value });
     }
 
     handleBlur = field => evt => {

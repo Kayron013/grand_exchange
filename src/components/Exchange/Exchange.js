@@ -34,7 +34,7 @@ export class Exchange extends Component {
     }
 
 
-    updateLevel = new_level => { this.setState(state => ({ level: new_level })) }
+    updateLevel = new_level => { this.setState({ level: new_level }) }
 
     upGradeLevel = () => {
         let depth = this.getdepth(this.props.data.content) - 1;
@@ -107,10 +107,10 @@ export class Exchange extends Component {
     }
 
     render() {
-        const { data = {} } = this.props;
+        const { type, data = {} } = this.props;
         const { isPaused, isClosed } = this.state;
         return (
-            <div className='exchange'>
+            <div className={'exchange ' + type}>
                 <div className='heading'>
                     <Fab color='default' className='close-btn' size='small' onClick={this.closeHandler}>
                         <Icon>close</Icon>
