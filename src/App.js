@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-ui/core';
 import { Exchange } from './components/Exchange/Exchange';
 import ExchangeForm from './components/ExchangeForm/ExchangeForm';
-import { requestConnection, addListener, removeListener } from "./services/socket";
+import { requestConnection, addListener, removeListener, sendHeartbeat } from "./services/socket";
 import './App.scss';
 
 
@@ -11,6 +11,12 @@ export class App extends Component {
         exchanges: [],
         modal_isOpen: false
     }
+
+    componentDidMount = () =>
+        setInterval(_ => {
+            const connections = this.state.exchanges.map(ex => ({ type: ex.type, server: ex.server }));
+            sendHeartbeat(connections);
+        }, 900000);
 
 
     eventHandler = evt_key => d => {

@@ -4,7 +4,7 @@ const express = require('express'),
     http = require('http').Server(app),
     io = require('socket.io')(http),
     amqp = require('amqplib/callback_api'),
-    zmq = require('zmq');
+    zmq = require('zeromq');
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
@@ -27,6 +27,7 @@ app.use((req, res, next) => {
 
 const connections = { rmq: {}, zmq: {}, msq: {} };
 global.connections = connections;
+
 
 
 const consume = (server, exchange, routing_key, res, ch, q) => {
@@ -112,7 +113,9 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                                                 [routing_key]: { connections: 1 }
                                             },
                                         }
-                                    }
+                                    },
+                                    heartbeat: Date.now(),
+                                    close: function () { this.connection.close() }
                                 };
                                 consume(server, exchange, routing_key, res, ch, q);
                             });
@@ -200,7 +203,11 @@ const makeZmqConnection = (server, res) => {
     });
     socket.subscribe('');
     res.json({ status: 'ok', event_key });
-    connections.zmq[server] = server;
+    connections.zmq[server] = {
+        socket,
+        heartbeat: Date.now(),
+        close: function () { this.socket.close() } 
+    };
 }
 
 app.post('/connect/zmq', (req, res) => {
@@ -214,6 +221,29 @@ app.post('/connect/zmq', (req, res) => {
     }
 });
 
+
+
+io.on('connection', socket => {
+    socket.on('heartbeat', arr => arr.forEach(el => connections[el.type][el.server].heartbeat = Date.now()));
+});
+
+
+const isDead = heartbeat => Date.now() - heartbeat >= 3600000;
+const checkHeartbeat = _ => {
+    for (const type in connections) {
+        for (const server in connections[type]) {
+            const connection = connections[type][server];
+            if (isDead(connection.heartbeat)) {
+                connection.close();
+                delete connections[type][server];
+                console.log(`Connection to ${type}:${server} closed`);
+            }
+        }
+    }
+}
+
+
+setInterval(checkHeartbeat, 3600000);
 
 
 const port = 8083;
