@@ -81,7 +81,9 @@ export class Exchange extends Component {
                 const { server, exchange, routing_key } = this.props;
                 return (
                     <div className='exchange-title'>
+                        
                         <Typography variant='h5' className='exchange-name'>
+                             
                             <Link
                                 color='secondary'
                                 href={`http://${server}:15672/#/exchanges/%2F/${exchange}`}
@@ -93,8 +95,9 @@ export class Exchange extends Component {
                                 color='secondary'
                                 href={`http://${server}:15672`}
                                 target='blank'>{server}
-                            </Link>
-                        </Typography>
+                            </Link>                                            
+                        </Typography>  
+                                                                                 
                     </div>
                     );
             case 'zmq':
@@ -121,9 +124,10 @@ export class Exchange extends Component {
                         </Button>
                         <Button className='btn' onClick={this.upGradeLevel}>
                             <Icon>add</Icon>
-                        </Button>
+                        </Button>          
                     </ToggleButtonGroup>
-                    {this.renderHeading()}
+                    <span className="typeName">{this.props.type == 'rmq'?"RMQ":"ZMQ"}</span>                   
+                    {this.renderHeading()}              
                 </div>
                 <div className='window'>
                     <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>

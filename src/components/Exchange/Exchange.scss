@@ -20,6 +20,7 @@
                 text-align: center;
                 // font-size: 1.5vw;
             }
+
         }
         .close-btn {
             float: left;
@@ -38,6 +39,18 @@
             .btn:hover {
                 background-color: #00000047;
             }
+        }
+        .typeName{
+            display: inline-flex;
+            float: right;
+            background-color: transparent;
+            margin-top:35px;
+            margin-right: 25px;
+            margin-left:-100px; 
+            color: red;
+            border-radius: 20px;
+            padding:  5px 20px ;
+            background: #000000df;
         }
         // .add-button{
         //     float: right;
