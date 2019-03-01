@@ -4,7 +4,8 @@ const express = require('express'),
     http = require('http').Server(app),
     io = require('socket.io')(http),
     amqp = require('amqplib/callback_api'),
-    zmq = require('zmq');
+    zmq = require('zeromq'),
+    mqtt = require('mqtt');
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
@@ -25,9 +26,17 @@ app.use((req, res, next) => {
 });
 
 
-const connections = { rmq: {}, zmq: {}, msq: {} };
+const connections = { rmq: {}, zmq: {}, mqtt: {} };
 global.connections = connections;
 
+
+//
+//
+//
+/* Rabbit MQ Connections */
+//
+//
+//
 
 const consume = (server, exchange, routing_key, res, ch, q) => {
     const event_key = `rmq:${server}:${exchange}:${routing_key}`;
@@ -65,7 +74,7 @@ const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject)
 });
 
 
-const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
+const makeRmqConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     let calls = 0;
     amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
         calls++;
@@ -109,10 +118,12 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                                     exchanges: {
                                         [exchange]: {
                                             routes: {
-                                                [routing_key]: { connections: 1 }
+                                                routing_key
                                             },
                                         }
-                                    }
+                                    },
+                                    heartbeat: Date.now(),
+                                    close: function () { this.connection.close() }
                                 };
                                 consume(server, exchange, routing_key, res, ch, q);
                             });
@@ -137,7 +148,7 @@ const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, 
             ch.bindQueue(q.queue, exchange, routing_key);
             connections.rmq[server].exchanges[exchange] = {
                 routes: {
-                    [routing_key]: { connections: 1 }
+                    routing_key
                 },
             };
             consume(server, exchange, routing_key, res, ch, q);
@@ -158,6 +169,7 @@ const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
     })
 }
 
+
 app.post('/connect/rmq', (req, res) => {
     const { username, password, server, exchange, routing_key } = req.body;
     const connection = connections.rmq[server];
@@ -166,7 +178,6 @@ app.post('/connect/rmq', (req, res) => {
         if (connection.exchanges[exchange]) {
             const route = connection.exchanges[exchange].routes[routing_key];
             if (route) {
-                route.connections++;
                 res.json({ status: 'ok' });
             }
             else {
@@ -178,10 +189,17 @@ app.post('/connect/rmq', (req, res) => {
         }
     }
     else {
-        makeConnection(req.body, res);
+        makeRmqConnection(req.body, res);
     }
 });
 
+//
+//
+//
+/* Zero MQ Connections */
+//
+//
+//
 
 const makeZmqConnection = (server, res) => {
     const event_key = `zmq:${server}`;
@@ -200,11 +218,15 @@ const makeZmqConnection = (server, res) => {
     });
     socket.subscribe('');
     res.json({ status: 'ok', event_key });
-    connections.zmq[server] = server;
+    connections.zmq[server] = {
+        socket,
+        heartbeat: Date.now(),
+        close: function () { this.socket.close() } 
+    };
 }
 
+
 app.post('/connect/zmq', (req, res) => {
-    console.log('zmq request')
     const { server } = req.body;
     if (connections.zmq[server]) {
         res.json({ status: 'ok' });
@@ -214,6 +236,84 @@ app.post('/connect/zmq', (req, res) => {
     }
 });
 
+//
+//
+//
+/* Mosquitto Connections */
+//
+//
+//
+
+const makeMqttConnection = (server, topic, res) => {
+    const event_key = `mqtt:${server}:${topic}`;
+    console.log('consuming; evt key:', event_key);
+
+    const client = mqtt.connect(`mqtt://${server}`);
+    client.on('connect', _ => {
+        client.subscribe(topic);
+        connections.mqtt[server] = {
+            client,
+            topics: {
+                topic
+            },
+            heartbeat: Date.now(),
+            close: function () { this.client.end(true) }
+        }
+    });
+    client.on('message', (msg_topic, msg) => {
+        if (topic == msg_topic) io.emit(event_key, JSON.parse(msg.toString()));
+    });
+}
+
+const reuseMqttClient = (topic, client) => {
+    
+}
+
+
+app.post('/connect/mqtt', (req, res) => {
+    const { server, topic } = req.body;
+    const connection = connections.mqtt[server];
+    if (connection) {
+        if (connection.topics[topic]) {
+            res.json({ status: 'ok' });
+        }
+        else {
+            reuseMqttClient(topic, connection.client);
+        }
+    }
+    else {
+        makeMqttConnection(server, res);
+    }
+});
+
+//
+//
+//
+/* Managing Connections */
+//
+//
+//
+
+io.on('connection', socket => {
+    socket.on('heartbeat', arr => arr.forEach(el => connections[el.type][el.server].heartbeat = Date.now()));
+});
+
+
+const isDead = heartbeat => Date.now() - heartbeat >= 3600000;
+const checkHeartbeat = _ => {
+    for (const type in connections) {
+        for (const server in connections[type]) {
+            const connection = connections[type][server];
+            if (isDead(connection.heartbeat)) {
+                connection.close();
+                delete connections[type][server];
+                console.log(`Connection to ${type}:${server} closed`);
+            }
+        }
+    }
+}
+
+setInterval(checkHeartbeat, 3600000);
 
 
 const port = 8083;
