@@ -256,7 +256,7 @@ const makeMqttConnection = (server, topic, res) => {
             topics: {
                 topic
             },
-            heartbeat = Date.now(),
+            heartbeat: Date.now(),
             close: function () { this.client.end(true) }
         }
     });
@@ -272,12 +272,13 @@ const reuseMqttClient = (topic, client) => {
 
 app.post('/connect/mqtt', (req, res) => {
     const { server, topic } = req.body;
-    if (connections.mqtt[server]) {
-        if (connections.mqtt[server].topics[topic]) {
+    const connection = connections.mqtt[server];
+    if (connection) {
+        if (connection.topics[topic]) {
             res.json({ status: 'ok' });
         }
         else {
-            reuseMqttClient()
+            reuseMqttClient(topic, connection.client);
         }
     }
     else {
