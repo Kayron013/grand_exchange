@@ -60,6 +60,7 @@ export class ZmqForm extends Component {
                                 <InputAdornment position="end">
                                     <TextField
                                         value={this.state.port.val}
+                                        className='inner-input'
                                         InputProps={{ startAdornment: ':' }}
                                         onChange={this.handleChange('port')}
                                         onBlur={this.handleBlur('port')}
