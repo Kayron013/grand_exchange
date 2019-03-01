@@ -25,16 +25,16 @@ export class Exchange extends Component {
         const new_data = JSON.stringify(this.props.data) !== JSON.stringify(prev_props.data);
         const new_level = this.state.level !== prev_state.level;
         if (new_data || new_level) {
-            console.log('exchange updated', this.props);
+            //console.log('exchange updated', this.props);
             const old_child = this.json_ref.current.firstElementChild;
             const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.props.data.content)
-            console.log('new json view constructed')
+            //console.log('new json view constructed')
             this.json_ref.current.replaceChild(new_child, old_child);
         }
     }
 
 
-    updateLevel = new_level => { this.setState(state => ({ level: new_level })) }
+    updateLevel = new_level => { this.setState({ level: new_level }) }
 
     upGradeLevel = () => {
         let depth = this.getdepth(this.props.data.content) - 1;
@@ -75,12 +75,42 @@ export class Exchange extends Component {
     
     isEmpty = obj => !Object.values(obj).length;
     
+    renderHeading = _ => {
+        switch (this.props.type) {
+            case 'rmq':
+                const { server, exchange, routing_key } = this.props;
+                return (
+                    <div className='exchange-title'>
+                        <Typography variant='h5' className='exchange-name'>
+                            <Link
+                                color='secondary'
+                                href={`http://${server}:15672/#/exchanges/%2F/${exchange}`}
+                                target='blank'>{exchange + (routing_key ? ' (' + routing_key + ')' : '')}
+                            </Link>
+                        </Typography>
+                        <Typography variant='subtitle1' className='server'>
+                            <Link
+                                color='secondary'
+                                href={`http://${server}:15672`}
+                                target='blank'>{server}
+                            </Link>
+                        </Typography>
+                    </div>
+                    );
+            case 'zmq':
+                return (
+                    <div className='exchange-title'>
+                        <Typography color='secondary' variant='h5' className='exchange-name'>{this.props.server}</Typography>
+                    </div>
+                );
+        }
+    }
 
     render() {
-        const { exchange, server, routing_key, data = {} } = this.props;
+        const { type, data = {} } = this.props;
         const { isPaused, isClosed } = this.state;
         return (
-            <div className='exchange'>
+            <div className={'exchange ' + type}>
                 <div className='heading'>
                     <Fab color='default' className='close-btn' size='small' onClick={this.closeHandler}>
                         <Icon>close</Icon>
@@ -93,12 +123,7 @@ export class Exchange extends Component {
                             <Icon>add</Icon>
                         </Button>
                     </ToggleButtonGroup>
-                    <Typography variant='h5' className='exchange-name'>
-                        <Link color='secondary' href={`http://${server}:15672/#/exchanges/%2F/${exchange}`} target='blank'>{exchange + (routing_key ? ' (' +routing_key+ ')' : '')}</Link>
-                    </Typography>
-                    <Typography variant='subtitle1' className='server'>
-                        <Link color='secondary' href={`http://${server}:15672`} target='blank'>{server}</Link>
-                    </Typography>
+                    {this.renderHeading()}
                 </div>
                 <div className='window'>
                     <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>
