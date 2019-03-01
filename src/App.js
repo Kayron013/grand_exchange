@@ -1,8 +1,8 @@
 import React, { Component } from "react";
 import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-ui/core';
 import { Exchange } from './components/Exchange/Exchange';
-import ExchangeForm from './components/ExchangeForm/ExchangeForm';
-import { requestConnection, addListener, removeListener } from "./services/socket";
+import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
+import { requestConnection, addListener, removeListener, sendHeartbeat } from "./services/socket";
 import './App.scss';
 
 
@@ -11,6 +11,12 @@ export class App extends Component {
         exchanges: [],
         modal_isOpen: false
     }
+
+    componentDidMount = () =>
+        setInterval(_ => {
+            const connections = this.state.exchanges.map(ex => ({ type: ex.type, server: ex.server }));
+            sendHeartbeat(connections);
+        }, 900000);
 
 
     eventHandler = evt_key => d => {
@@ -21,8 +27,7 @@ export class App extends Component {
     }
 
 
-    addRmqExchange = (server, exchange, routing_key) => {
-        const evt_key = `rmq:${server}:${exchange}:${routing_key}`;
+    addRmqExchange = (server, exchange, routing_key, evt_key) => {
         addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
         exchanges.push({ type: 'rmq', server, exchange, routing_key, evt_key, data: {} });
@@ -30,11 +35,17 @@ export class App extends Component {
     }
 
 
-    addZmqExchange = server => {
-        const evt_key = `zmq:${server}`;
+    addZmqExchange = (server, port, evt_key) => {
         addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
-        exchanges.push({ type: 'zmq', server, evt_key, data: {} });
+        exchanges.push({ type: 'zmq', server, port, evt_key, data: {} });
+        this.setState({ exchanges });
+    }
+
+    addMqttExchange = (server, port, topic, evt_key) => {
+        addListener(evt_key, this.eventHandler(evt_key));
+        const exchanges = [...this.state.exchanges];
+        exchanges.push({ type: 'mqtt', server, port, topic, evt_key, data: {} });
         this.setState({ exchanges });
     }
 
@@ -53,10 +64,19 @@ export class App extends Component {
 
     closeModal = () => { this.setState({ modal_isOpen: false }) }
 
+    exchangeExists = d => {
+        switch (d.type) {
+            case 'rmq':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
+            case 'zmq':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.port === d.port);
+            case 'mqtt':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.topic === d.topic);
+        }
+    }
 
     handleSubmit = d => {
-        const exchange_found = this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
-        if (exchange_found) {
+        if (this.exchangeExists(d)) {
             alert('Already connected to this exchange');
         }
         else {
@@ -67,12 +87,16 @@ export class App extends Component {
                     console.log('Server Error:', res.error);
                 }
                 else {
+                    console.log('Response:', res);
                     switch (d.type) {
                         case 'rmq':
-                            this.addRmqExchange(d.server, d.exchange, d.routing_key);
+                            this.addRmqExchange(d.server, d.exchange, d.routing_key, res.event_key);
                             break;
                         case 'zmq':
-                            this.addZmqExchange(d.server);
+                            this.addZmqExchange(d.server, d.port, res.event_key);
+                            break;
+                        case 'mqtt':
+                            this.addMqttExchange(d.server, d.port, d.topic, res.event_key);
                     }
                 }
             }); 

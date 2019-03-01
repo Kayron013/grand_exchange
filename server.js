@@ -4,7 +4,8 @@ const express = require('express'),
     http = require('http').Server(app),
     io = require('socket.io')(http),
     amqp = require('amqplib/callback_api'),
-    zmq = require('zmq');
+    zmq = require('zeromq'),
+    mqtt = require('mqtt');
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
@@ -25,13 +26,27 @@ app.use((req, res, next) => {
 });
 
 
-const connections = { rmq: {}, zmq: {}, msq: {} };
+const connections = { rmq: {}, zmq: {}, mqtt: {} };
 global.connections = connections;
 
 
+const getEventKey = (type, props) =>
+    type == 'rmq' ? `rmq::${props.server}::${props.exchange}::${props.routing_key}` :
+    type == 'zmq' ? `zmq::${props.server}:${props.port}` :
+    type == 'mqtt' ? `mqtt::${props.server}::${props.topic}` : null;
+
+
+//
+//
+//
+/* Rabbit MQ Connections */
+//
+//
+//
+
 const consume = (server, exchange, routing_key, res, ch, q) => {
-    const event_key = `rmq:${server}:${exchange}:${routing_key}`;
-    console.log('consuming; evt key:', event_key);
+    const event_key = getEventKey('rmq', {server, exchange, routing_key });
+    console.log('new connection =>', event_key);
     res.json({ status: 'ok', event_key });
     ch.consume(q.queue, msg => {
         try {
@@ -65,7 +80,7 @@ const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject)
 });
 
 
-const makeConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
+const makeRmqConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
     let calls = 0;
     amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
         calls++;
@@ -109,10 +124,12 @@ const makeConnection = ({ username, password, server, exchange, routing_key = ''
                                     exchanges: {
                                         [exchange]: {
                                             routes: {
-                                                [routing_key]: { connections: 1 }
+                                                routing_key
                                             },
                                         }
-                                    }
+                                    },
+                                    heartbeat: Date.now(),
+                                    close: function () { this.connection.close() }
                                 };
                                 consume(server, exchange, routing_key, res, ch, q);
                             });
@@ -137,7 +154,7 @@ const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, 
             ch.bindQueue(q.queue, exchange, routing_key);
             connections.rmq[server].exchanges[exchange] = {
                 routes: {
-                    [routing_key]: { connections: 1 }
+                    routing_key
                 },
             };
             consume(server, exchange, routing_key, res, ch, q);
@@ -158,16 +175,17 @@ const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
     })
 }
 
+
 app.post('/connect/rmq', (req, res) => {
-    const { username, password, server, exchange, routing_key } = req.body;
-    const connection = connections.rmq[server];
+    const { username, password, server, exchange, routing_key } = req.body,
+        event_key = getEventKey('rmq', {server, exchange, routing_key });
+        connection = connections.rmq[server];
     if (connection && connection.credentials.username == username && connection.credentials.password == password) {
         
         if (connection.exchanges[exchange]) {
             const route = connection.exchanges[exchange].routes[routing_key];
             if (route) {
-                route.connections++;
-                res.json({ status: 'ok' });
+                res.json({ status: 'ok', event_key });
             }
             else {
                 reuseExchange(req.body, res, connection.channel);
@@ -178,17 +196,22 @@ app.post('/connect/rmq', (req, res) => {
         }
     }
     else {
-        makeConnection(req.body, res);
+        makeRmqConnection(req.body, res);
     }
 });
 
+//
+//
+//
+/* Zero MQ Connections */
+//
+//
+//
 
-const makeZmqConnection = (server, res) => {
-    const event_key = `zmq:${server}`;
-    console.log('consuming; evt key:', event_key);
-    
-    const socket = zmq.socket('sub');
-    socket.connect(`tcp://${server}:5556`);
+const makeZmqConnection = ({ server, port }, res) => {
+    const event_key = getEventKey('zmq', { server, port }),
+        socket = zmq.socket('sub');
+    socket.connect(`tcp://${server}:${port}`);
     socket.on('message', msg => {
         try {
             const data = { timestamp: Date.now(), content: JSON.parse(msg.toString()) };
@@ -200,20 +223,131 @@ const makeZmqConnection = (server, res) => {
     });
     socket.subscribe('');
     res.json({ status: 'ok', event_key });
-    connections.zmq[server] = server;
+    connections.zmq[`${server}:${port}`] = {
+        socket,
+        heartbeat: Date.now(),
+        close: function () { this.socket.close() } 
+    };
+    console.log('new connection =>', event_key);
 }
 
+
 app.post('/connect/zmq', (req, res) => {
-    console.log('zmq request')
-    const { server } = req.body;
-    if (connections.zmq[server]) {
-        res.json({ status: 'ok' });
+    const { server, port } = req.body,
+        event_key = getEventKey('zmq', { server, port });
+    if (connections.zmq[`${server}:${port}`]) {
+        res.json({ status: 'ok', event_key });
     }
     else {
-        makeZmqConnection(server, res);
+        makeZmqConnection(req.body, res);
     }
 });
 
+//
+//
+//
+/* Mosquitto Connections */
+//
+//
+//
+
+const mqttConsume = (client, server, topic , res) => {
+    const event_key = getEventKey('mqtt', { server, topic });
+    res.json({ status: 'ok', event_key });
+    client.on('message', (msg_topic, msg) => {
+        if (topic == msg_topic) {
+            try {
+                const data = { timestamp: Date.now(), content: JSON.parse(msg.toString()) };
+                io.emit(event_key, data);
+            }
+            catch (err) {
+                io.emit(event_key, { unparsable: null });
+            }
+        }
+    });
+    console.log('new connection =>', event_key);
+}
+
+
+const makeMqttConnection = ({ server, topic, },  res) => {
+    const client = mqtt.connect(`mqtt://${server}`);
+    client.on('connect', _ => {
+        client.subscribe(topic, err => {
+            if (err) {
+                console.log(err);
+                res.json({ status: 'error', error: '' });
+            }
+            else {
+                connections.mqtt[server] = {
+                    client,
+                    topics: {
+                        [topic]: topic
+                    },
+                    heartbeat: Date.now(),
+                    close: function () { this.client.end(true) }
+                }
+                mqttConsume(client, server, topic, res);
+            }
+        });
+    });
+}
+
+
+const reuseMqttClient = ({ server, topic, }, client, res) => {
+    client.subscribe(topic);
+    connections.mqtt[server].topics[topic] = topic;
+    mqttConsume(client, server, topic, res);
+}
+
+
+app.post('/connect/mqtt', (req, res) => {
+    const { server, topic } = req.body,
+        event_key = getEventKey('mqtt', { server, topic }),
+        connection = connections.mqtt[server];
+    if (connection) {
+        if (connection.topics[topic]) {
+            res.json({ status: 'ok', event_key });
+        }
+        else {
+            reuseMqttClient(req.body, connection.client, res);
+        }
+    }
+    else {
+        makeMqttConnection(req.body, res);
+    }
+});
+
+//
+//
+//
+/* Managing Connections */
+//
+//
+//
+
+io.on('connection', socket => {
+    socket.on('heartbeat', arr => arr.forEach(el => {
+        if (connections[el.type][el.server])
+            connections[el.type][el.server].heartbeat = Date.now()
+    }));
+});
+
+
+const isDead = heartbeat => Date.now() - heartbeat >= 3600000;
+const checkHeartbeat = _ => {
+    for (const type in connections) {
+        for (const server in connections[type]) {
+            const connection = connections[type][server];
+            if (isDead(connection.heartbeat)) {
+                connection.close();
+                delete connections[type][server];
+                console.log(`Connection to ${type}:${server} closed`);
+            }
+        }
+    }
+}
+
+setInterval(checkHeartbeat, 3600000);
 
 
 const port = 8083;

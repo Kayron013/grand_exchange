@@ -1,10 +1,12 @@
 .exchange-form{
     margin: 10rem;
-    padding: 10px;
+    padding: 20px;
     background: white;
+    border-radius: 5px;
+    overflow: hidden;
     .form-select{
-        margin-bottom: -10px;
-        margin-left: -10px;
+        margin-bottom: -20px;
+        margin-left: -20px;
         display: flex;
         justify-content: center;
         margin-top: 10px;
