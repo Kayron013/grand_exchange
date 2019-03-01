@@ -5,12 +5,12 @@ import './ExchangeForm.scss';
 
 export class ExchangeForm extends Component {
     state = {
-        server: '',
-        exchange: '',
+        server: '10.50.78.90',
+        exchange: 'slow_segment_exchange',
         routing_key: '',
         is_durable: false,
-        username: '',
-        password: '',
+        username: 'sire',
+        password: 'sire001a',
         show_password: false,
         //record if the all necessary textfiled has been click
         touched: {
