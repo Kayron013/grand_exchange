@@ -5,12 +5,12 @@ import './RmqForm.scss';
 
 export class RmqForm extends Component {
     state = {
-        server: '10.50.78.90',
-        exchange: 'slow_segment_exchange',
+        server: '',
+        exchange: '',
         routing_key: '',
         is_durable: false,
-        username: 'sire',
-        password: 'sire001a',
+        username: '',
+        password: '',
         show_password: false,
         //record if the all necessary textfiled has been click
         touched: {
