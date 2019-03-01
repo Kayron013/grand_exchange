@@ -1,10 +1,11 @@
 import React, { Component } from "react";
 import { FormControl, FormControlLabel, RadioGroup, Radio } from '@material-ui/core';
-import RmqForm from './RmqForm/RmqForm';
-import ZmqForm from './ZmqForm/ZmqForm';
+import { RmqForm } from './RmqForm/RmqForm';
+import { ZmqForm } from './ZmqForm/ZmqForm';
+import { MqttForm } from './MqttForm/MqttForm';
 import './ExchangeForm.scss';
 
-export default class ExchangeForm extends Component {
+export class ExchangeForm extends Component {
     state = {
         form: 'rmq'
     }
@@ -19,6 +20,8 @@ export default class ExchangeForm extends Component {
                 return <RmqForm onSubmit={this.props.onSubmit} />
             case 'zmq':
                 return <ZmqForm onSubmit={this.props.onSubmit} />
+            case 'mqtt':
+                return <MqttForm onSubmit={this.props.onSubmit} />
         }
     }
 
@@ -30,6 +33,7 @@ export default class ExchangeForm extends Component {
                     <RadioGroup row className='radio-group' value={this.state.form} onChange={this.toggleForm}>
                         <FormControlLabel value='rmq' control={<Radio />} label='RMQ' />
                         <FormControlLabel value='zmq' control={<Radio />} label='ZMQ' />
+                        <FormControlLabel value='mqtt' control={<Radio />} label='MQTT' />
                     </RadioGroup>
                 </div>
             </div>

@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
-import { TextField, InputAdornment, Icon, Typography, Button } from '@material-ui/core';
-import './ZmqForm.scss';
+import { TextField, InputAdornment, Input, Icon, Typography, Button } from '@material-ui/core';
+import './MqttForm.scss';
 
-export class ZmqForm extends Component {
+export class MqttForm extends Component {
     state = {
         server: { val: '', touched: false },
-        port: { val: '5556', touched: false }
+        //port: { val: '', touched: false },
+        topic: { val: '', touched: false }
     }
 
     handleChange = field => evt => {
@@ -31,18 +32,19 @@ export class ZmqForm extends Component {
         if (!this.canBeSubmited()) {
             this.setState(state => ({
                 server: { ...state.server, touched: true },
-                port: { ...state.port, touched: true }
+                //port: { ...state.port, touched: true },
+                topic: { ...state.topic, touched: true }
             }));
             alert("Fill out all required fields");
         }
         else {
-            this.props.onSubmit({ server: this.state.server.val, port: this.state.port.val, type: 'zmq' });
+            this.props.onSubmit({ server: this.state.server.val, /*port: this.state.port.val,*/ topic: this.state.topic.val, type: 'mqtt' });
         }
     }
 
     render() {
         return (
-            <form className='zmq-form' onKeyPress={this.handleEnter} onSubmit={evt => evt.preventDefault()}>
+            <form className='mqtt-form' onKeyPress={this.handleEnter} onSubmit={evt => evt.preventDefault()}>
                 <Typography variant='h6' className='form-heading'>Location</Typography>
                 <div className='form-group'>
                     <TextField
@@ -56,7 +58,7 @@ export class ZmqForm extends Component {
                         onBlur={this.handleBlur('server')}
                         InputProps={{
                             startAdornment: <InputAdornment position="start"><Icon>public</Icon></InputAdornment>,
-                            endAdornment:
+                            /*endAdornment:
                                 <InputAdornment position="end">
                                     <TextField
                                         value={this.state.port.val}
@@ -65,7 +67,20 @@ export class ZmqForm extends Component {
                                         onBlur={this.handleBlur('port')}
                                         error={this.shouldMarkError('port')}
                                     />
-                                </InputAdornment>
+                                </InputAdornment>*/
+                        }}
+                    />
+                    <TextField
+                        id='topic'
+                        label='Topic'
+                        className='form-input'
+                        value={this.state.topic.val}
+                        onChange={this.handleChange('topic')}
+                        variant='outlined'
+                        error= {this.shouldMarkError('topic')}
+                        onBlur={this.handleBlur('topic')}
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start"><Icon>pageview</Icon></InputAdornment>
                         }}
                     />
                 </div>

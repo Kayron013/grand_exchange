@@ -1,5 +1,6 @@
 .exchange.rmq { background: #2c1748; }
-.exchange.zmq { background: #3a1748; }
+.exchange.zmq { background: #481732; }
+.exchange.mqtt { background: #532053}
 .exchange {
     color: white;
     font-family: 'Roboto';
@@ -50,27 +51,15 @@
             border-radius: 20px;
             padding:  5px 20px ;
             background: #00000047;
+            text-transform: uppercase;
         }
-        // .add-button{
-        //     float: right;
-        //     right: 20px;
-        //     bottom: 35px;
-        //     background-color: #663d9d;
-        // }
-        // .substract-button{
-        //     color:red;
-        //     float: right;
-        //     right: -20px;
-        //     bottom: 15px;
-        //     background-color: #663d9d;
-        // }
     }
     .window {
         border-radius: 15px;
         overflow: hidden;
         width:100%;
+        margin-top: 5px;
         .json {
-
             background-color: #00182b;
             height: 500px;
             padding: 0 18px;

@@ -81,9 +81,7 @@ export class Exchange extends Component {
                 const { server, exchange, routing_key } = this.props;
                 return (
                     <div className='exchange-title'>
-                        
                         <Typography variant='h5' className='exchange-name'>
-                             
                             <Link
                                 color='secondary'
                                 href={`http://${server}:15672/#/exchanges/%2F/${exchange}`}
@@ -96,8 +94,7 @@ export class Exchange extends Component {
                                 href={`http://${server}:15672`}
                                 target='blank'>{server}
                             </Link>                                            
-                        </Typography>  
-                                                                                 
+                        </Typography>                                                 
                     </div>
                     );
             case 'zmq':
@@ -106,6 +103,13 @@ export class Exchange extends Component {
                         <Typography color='secondary' variant='h5' className='exchange-name'>{this.props.server}</Typography>
                     </div>
                 );
+            case 'mqtt':
+                return (
+                    <div className='exchange-title'>
+                        <Typography color='secondary' variant='h5' className='exchange-name'>{this.props.topic}</Typography>
+                        <Typography color='secondary' variant='subtitle1' className='server'>{this.props.server}</Typography>                                                 
+                    </div>
+                )
         }
     }
 
@@ -126,7 +130,7 @@ export class Exchange extends Component {
                             <Icon>add</Icon>
                         </Button>          
                     </ToggleButtonGroup>
-                    <span className="typeName">{this.props.type == 'rmq'?"RMQ":"ZMQ"}</span>                   
+                    <span className="typeName">{this.props.type}</span>                   
                     {this.renderHeading()}              
                 </div>
                 <div className='window'>

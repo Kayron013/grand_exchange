@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-ui/core';
 import { Exchange } from './components/Exchange/Exchange';
-import ExchangeForm from './components/ExchangeForm/ExchangeForm';
+import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
 import { requestConnection, addListener, removeListener, sendHeartbeat } from "./services/socket";
 import './App.scss';
 
@@ -20,7 +20,6 @@ export class App extends Component {
 
 
     eventHandler = evt_key => d => {
-        console.log('data', d);
         const exchanges = JSON.parse(JSON.stringify(this.state.exchanges));
         const exchange = exchanges.find(ex => ex.evt_key == evt_key);
         exchange.data = d;
@@ -43,6 +42,13 @@ export class App extends Component {
         this.setState({ exchanges });
     }
 
+    addMqttExchange = (server, port, topic, evt_key) => {
+        addListener(evt_key, this.eventHandler(evt_key));
+        const exchanges = [...this.state.exchanges];
+        exchanges.push({ type: 'mqtt', server, port, topic, evt_key, data: {} });
+        this.setState({ exchanges });
+    }
+
 
     removeExchange = evt_key => {
         removeListener(evt_key);
@@ -58,10 +64,19 @@ export class App extends Component {
 
     closeModal = () => { this.setState({ modal_isOpen: false }) }
 
+    exchangeExists = d => {
+        switch (d.type) {
+            case 'rmq':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
+            case 'zmq':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.port === d.port);
+            case 'mqtt':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.topic === d.topic);
+        }
+    }
 
     handleSubmit = d => {
-        const exchange_found = this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
-        if (exchange_found) {
+        if (this.exchangeExists(d)) {
             alert('Already connected to this exchange');
         }
         else {
@@ -79,6 +94,9 @@ export class App extends Component {
                             break;
                         case 'zmq':
                             this.addZmqExchange(d.server, d.port, res.event_key);
+                            break;
+                        case 'mqtt':
+                            this.addMqttExchange(d.server, d.port, d.topic, res.event_key);
                     }
                 }
             }); 

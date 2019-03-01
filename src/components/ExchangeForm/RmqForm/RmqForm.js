@@ -3,7 +3,7 @@ import { TextField, InputAdornment, Icon, IconButton, Typography, Button, FormCo
 import './RmqForm.scss';
 
 
-export default class RmqForm extends Component {
+export class RmqForm extends Component {
     state = {
         server: '10.50.78.90',
         exchange: 'slow_segment_exchange',

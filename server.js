@@ -46,7 +46,7 @@ const getEventKey = (type, props) =>
 
 const consume = (server, exchange, routing_key, res, ch, q) => {
     const event_key = getEventKey('rmq', {server, exchange, routing_key });
-    console.log('consuming; evt key:', event_key);
+    console.log('new connection =>', event_key);
     res.json({ status: 'ok', event_key });
     ch.consume(q.queue, msg => {
         try {
@@ -208,10 +208,10 @@ app.post('/connect/rmq', (req, res) => {
 //
 //
 
-const makeZmqConnection = (server, port, res) => {
-    const event_key = getEventKey('zmq', { server, port });
-    const socket = zmq.socket('sub');
-    socket.connect(`tcp://${server}:5556`);
+const makeZmqConnection = ({ server, port }, res) => {
+    const event_key = getEventKey('zmq', { server, port }),
+        socket = zmq.socket('sub');
+    socket.connect(`tcp://${server}:${port}`);
     socket.on('message', msg => {
         try {
             const data = { timestamp: Date.now(), content: JSON.parse(msg.toString()) };
@@ -228,18 +228,18 @@ const makeZmqConnection = (server, port, res) => {
         heartbeat: Date.now(),
         close: function () { this.socket.close() } 
     };
-    console.log('consuming; evt key:', event_key);
+    console.log('new connection =>', event_key);
 }
 
 
 app.post('/connect/zmq', (req, res) => {
-    const { server, port } = req.body;
-    const event_key = getEventKey('zmq', { server, port });
+    const { server, port } = req.body,
+        event_key = getEventKey('zmq', { server, port });
     if (connections.zmq[`${server}:${port}`]) {
         res.json({ status: 'ok', event_key });
     }
     else {
-        makeZmqConnection(server, port, res);
+        makeZmqConnection(req.body, res);
     }
 });
 
@@ -251,45 +251,69 @@ app.post('/connect/zmq', (req, res) => {
 //
 //
 
-const makeMqttConnection = (server, topic, res) => {
+const mqttConsume = (client, server, topic , res) => {
     const event_key = getEventKey('mqtt', { server, topic });
-    console.log('consuming; evt key:', event_key);
-
-    const client = mqtt.connect(`mqtt://${server}`);
-    client.on('connect', _ => {
-        client.subscribe(topic);
-        connections.mqtt[server] = {
-            client,
-            topics: {
-                topic
-            },
-            heartbeat: Date.now(),
-            close: function () { this.client.end(true) }
+    res.json({ status: 'ok', event_key });
+    client.on('message', (msg_topic, msg) => {
+        if (topic == msg_topic) {
+            try {
+                const data = { timestamp: Date.now(), content: JSON.parse(msg.toString()) };
+                io.emit(event_key, data);
+            }
+            catch (err) {
+                io.emit(event_key, { unparsable: null });
+            }
         }
     });
-    client.on('message', (msg_topic, msg) => {
-        if (topic == msg_topic) io.emit(event_key, JSON.parse(msg.toString()));
+    console.log('new connection =>', event_key);
+}
+
+
+const makeMqttConnection = ({ server, topic, },  res) => {
+    const client = mqtt.connect(`mqtt://${server}`);
+    client.on('connect', _ => {
+        client.subscribe(topic, err => {
+            if (err) {
+                console.log(err);
+                res.json({ status: 'error', error: '' });
+            }
+            else {
+                connections.mqtt[server] = {
+                    client,
+                    topics: {
+                        [topic]: topic
+                    },
+                    heartbeat: Date.now(),
+                    close: function () { this.client.end(true) }
+                }
+                mqttConsume(client, server, topic, res);
+            }
+        });
     });
 }
 
-const reuseMqttClient = (topic, client) => {
-    //TODO:
+
+const reuseMqttClient = ({ server, topic, }, client, res) => {
+    client.subscribe(topic);
+    connections.mqtt[server].topics[topic] = topic;
+    mqttConsume(client, server, topic, res);
 }
 
 
 app.post('/connect/mqtt', (req, res) => {
-    const { server, topic } = req.body;
-    const connection = connections.mqtt[server];
+    const { server, topic } = req.body,
+        event_key = getEventKey('mqtt', { server, topic }),
+        connection = connections.mqtt[server];
     if (connection) {
         if (connection.topics[topic]) {
-            res.json({ status: 'ok' });
+            res.json({ status: 'ok', event_key });
         }
         else {
-            reuseMqttClient(topic, connection.client);
+            reuseMqttClient(req.body, connection.client, res);
         }
     }
     else {
-        makeMqttConnection(server, res);
+        makeMqttConnection(req.body, res);
     }
 });
 
