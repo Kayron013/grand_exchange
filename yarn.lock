@@ -5813,7 +5813,8 @@ yeast@0.1.2:
 
 zeromq@^5.1.0:
   version "5.1.0"
-  resolved "https://registry.yarnpkg.com/zeromq/-/zeromq-5.1.0.tgz#e96508f8babe851c1ea07c0edcedf8e7715947f6"
+  resolved "https://registry.npmjs.org/zeromq/-/zeromq-5.1.0.tgz#e96508f8babe851c1ea07c0edcedf8e7715947f6"
+  integrity sha512-wBEwnWaC1BQgcVoC4ZcERuIf+F0LdW12rblcwFNQANUGjJqQB1Ty3D59+WhvBJU9EliQw9Qc6V914gYXMzO6jw==
   dependencies:
     nan "^2.10.0"
     prebuild-install "5.2.1"

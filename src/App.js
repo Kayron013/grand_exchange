@@ -20,6 +20,7 @@ export class App extends Component {
 
 
     eventHandler = evt_key => d => {
+        console.log('data', d);
         const exchanges = JSON.parse(JSON.stringify(this.state.exchanges));
         const exchange = exchanges.find(ex => ex.evt_key == evt_key);
         exchange.data = d;
@@ -27,8 +28,7 @@ export class App extends Component {
     }
 
 
-    addRmqExchange = (server, exchange, routing_key) => {
-        const evt_key = `rmq:${server}:${exchange}:${routing_key}`;
+    addRmqExchange = (server, exchange, routing_key, evt_key) => {
         addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
         exchanges.push({ type: 'rmq', server, exchange, routing_key, evt_key, data: {} });
@@ -36,11 +36,10 @@ export class App extends Component {
     }
 
 
-    addZmqExchange = server => {
-        const evt_key = `zmq:${server}`;
+    addZmqExchange = (server, port, evt_key) => {
         addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
-        exchanges.push({ type: 'zmq', server, evt_key, data: {} });
+        exchanges.push({ type: 'zmq', server, port, evt_key, data: {} });
         this.setState({ exchanges });
     }
 
@@ -73,12 +72,13 @@ export class App extends Component {
                     console.log('Server Error:', res.error);
                 }
                 else {
+                    console.log('Response:', res);
                     switch (d.type) {
                         case 'rmq':
-                            this.addRmqExchange(d.server, d.exchange, d.routing_key);
+                            this.addRmqExchange(d.server, d.exchange, d.routing_key, res.event_key);
                             break;
                         case 'zmq':
-                            this.addZmqExchange(d.server);
+                            this.addZmqExchange(d.server, d.port, res.event_key);
                     }
                 }
             }); 

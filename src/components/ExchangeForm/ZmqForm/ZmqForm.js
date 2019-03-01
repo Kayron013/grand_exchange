@@ -4,16 +4,17 @@ import './ZmqForm.scss';
 
 export default class ZmqForm extends Component {
     state = {
-        server: '',
-        touched: false
+        server: { val: '', touched: false },
+        port: { val: '5556', touched: false }
     }
 
-    handleChange = evt => {
-        this.setState({ server: evt.target.value });
+    handleChange = field => evt => {
+        evt.persist();
+        this.setState(state => ({ [field]: { ...state[field], val: evt.target.value } }));
     }
 
-    handleBlur = evt => {
-        this.setState({ touched: true });
+    handleBlur = field => evt => {
+        this.setState(state => ({ [field]: { ...state[field], touched: true } }));
     }
 
     handleEnter = e => {
@@ -22,13 +23,20 @@ export default class ZmqForm extends Component {
         }
     }
 
+    shouldMarkError = field => this.state[field].val == '' && this.state[field].touched;
+
+    canBeSubmited = _ => !Object.values(this.state).some(field => !field.val);
+
     handleSubmit = _ => {
-        if (!this.state.server) {
-            this.setState({ touched: true });
-            alert("Fill out required field");
+        if (!this.canBeSubmited()) {
+            this.setState(state => ({
+                server: { ...state.server, touched: true },
+                port: { ...state.port, touched: true }
+            }));
+            alert("Fill out all required fields");
         }
         else {
-            this.props.onSubmit({ server: this.state.server, type: 'zmq' });
+            this.props.onSubmit({ server: this.state.server.val, port: this.state.port.val, type: 'zmq' });
         }
     }
 
@@ -41,11 +49,24 @@ export default class ZmqForm extends Component {
                         id='server-name'
                         label='Server'
                         className='form-input'
-                        value={this.state.server}
-                        onChange={this.handleChange}
+                        value={this.state.server.val}
+                        onChange={this.handleChange('server')}
                         variant='outlined'
-                        error= {!this.state.server && this.state.touched}
-                        onBlur={this.handleBlur}
+                        error= {this.shouldMarkError('server')}
+                        onBlur={this.handleBlur('server')}
+                        InputProps={{
+                            startAdornment: <InputAdornment position="start"><Icon>public</Icon></InputAdornment>,
+                        }}
+                    />
+                    <TextField
+                        id='server-port'
+                        label='Port'
+                        className='form-input'
+                        value={this.state.port.val}
+                        onChange={this.handleChange('port')}
+                        variant='outlined'
+                        error= {this.shouldMarkError('port')}
+                        onBlur={this.handleBlur('port')}
                         InputProps={{
                             startAdornment: <InputAdornment position="start"><Icon>public</Icon></InputAdornment>,
                         }}

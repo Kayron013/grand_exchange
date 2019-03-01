@@ -30,6 +30,12 @@ const connections = { rmq: {}, zmq: {}, mqtt: {} };
 global.connections = connections;
 
 
+const getEventKey = (type, props) =>
+    type == 'rmq' ? `rmq::${props.server}::${props.exchange}::${props.routing_key}` :
+    type == 'zmq' ? `zmq::${props.server}:${props.port}` :
+    type == 'mqtt' ? `mqtt::${props.server}::${props.topic}` : null;
+
+
 //
 //
 //
@@ -39,7 +45,7 @@ global.connections = connections;
 //
 
 const consume = (server, exchange, routing_key, res, ch, q) => {
-    const event_key = `rmq:${server}:${exchange}:${routing_key}`;
+    const event_key = getEventKey('rmq', {server, exchange, routing_key });
     console.log('consuming; evt key:', event_key);
     res.json({ status: 'ok', event_key });
     ch.consume(q.queue, msg => {
@@ -171,14 +177,15 @@ const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
 
 
 app.post('/connect/rmq', (req, res) => {
-    const { username, password, server, exchange, routing_key } = req.body;
-    const connection = connections.rmq[server];
+    const { username, password, server, exchange, routing_key } = req.body,
+        event_key = getEventKey('rmq', {server, exchange, routing_key });
+        connection = connections.rmq[server];
     if (connection && connection.credentials.username == username && connection.credentials.password == password) {
         
         if (connection.exchanges[exchange]) {
             const route = connection.exchanges[exchange].routes[routing_key];
             if (route) {
-                res.json({ status: 'ok' });
+                res.json({ status: 'ok', event_key });
             }
             else {
                 reuseExchange(req.body, res, connection.channel);
@@ -201,10 +208,8 @@ app.post('/connect/rmq', (req, res) => {
 //
 //
 
-const makeZmqConnection = (server, res) => {
-    const event_key = `zmq:${server}`;
-    console.log('consuming; evt key:', event_key);
-    
+const makeZmqConnection = (server, port, res) => {
+    const event_key = getEventKey('zmq', { server, port });
     const socket = zmq.socket('sub');
     socket.connect(`tcp://${server}:5556`);
     socket.on('message', msg => {
@@ -218,21 +223,23 @@ const makeZmqConnection = (server, res) => {
     });
     socket.subscribe('');
     res.json({ status: 'ok', event_key });
-    connections.zmq[server] = {
+    connections.zmq[`${server}:${port}`] = {
         socket,
         heartbeat: Date.now(),
         close: function () { this.socket.close() } 
     };
+    console.log('consuming; evt key:', event_key);
 }
 
 
 app.post('/connect/zmq', (req, res) => {
-    const { server } = req.body;
-    if (connections.zmq[server]) {
-        res.json({ status: 'ok' });
+    const { server, port } = req.body;
+    const event_key = getEventKey('zmq', { server, port });
+    if (connections.zmq[`${server}:${port}`]) {
+        res.json({ status: 'ok', event_key });
     }
     else {
-        makeZmqConnection(server, res);
+        makeZmqConnection(server, port, res);
     }
 });
 
@@ -245,7 +252,7 @@ app.post('/connect/zmq', (req, res) => {
 //
 
 const makeMqttConnection = (server, topic, res) => {
-    const event_key = `mqtt:${server}:${topic}`;
+    const event_key = getEventKey('mqtt', { server, topic });
     console.log('consuming; evt key:', event_key);
 
     const client = mqtt.connect(`mqtt://${server}`);
@@ -266,7 +273,7 @@ const makeMqttConnection = (server, topic, res) => {
 }
 
 const reuseMqttClient = (topic, client) => {
-    
+    //TODO:
 }
 
 
@@ -295,7 +302,10 @@ app.post('/connect/mqtt', (req, res) => {
 //
 
 io.on('connection', socket => {
-    socket.on('heartbeat', arr => arr.forEach(el => connections[el.type][el.server].heartbeat = Date.now()));
+    socket.on('heartbeat', arr => arr.forEach(el => {
+        if (connections[el.type][el.server])
+            connections[el.type][el.server].heartbeat = Date.now()
+    }));
 });
 
 
