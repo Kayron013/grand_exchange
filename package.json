@@ -1,6 +1,6 @@
 {
   "name": "grand_exchange",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "grand_exchange",
   "main": "index.js",
   "author": "Angel Campbell",
@@ -13,11 +13,12 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "moment": "^2.24.0",
+    "mqtt": "^2.18.8",
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
-    "zmq": "^2.15.3"
+    "zeromq": "^5.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.3.3",

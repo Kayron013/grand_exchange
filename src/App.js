@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-ui/core';
 import { Exchange } from './components/Exchange/Exchange';
 import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
-import { requestConnection, addListener, removeListener } from "./services/socket";
+import { requestConnection, addListener, removeListener, sendHeartbeat } from "./services/socket";
 import './App.scss';
 
 
@@ -12,21 +12,41 @@ export class App extends Component {
         modal_isOpen: false
     }
 
+    componentDidMount = () =>
+        setInterval(_ => {
+            const connections = this.state.exchanges.map(ex => ({ type: ex.type, server: ex.server }));
+            sendHeartbeat(connections);
+        }, 900000);
+
 
     eventHandler = evt_key => d => {
         const exchanges = JSON.parse(JSON.stringify(this.state.exchanges));
         const exchange = exchanges.find(ex => ex.evt_key == evt_key);
-        exchange.data = d;//JSON.stringify(d);
-        this.setState(state => ({ exchanges }));
+        exchange.data = d;
+        this.setState({ exchanges });
     }
 
 
-    addExchange = (server, exchange, routing_key) => {
-        const evt_key = `${server}:${exchange}:${routing_key}`;
+    addRmqExchange = (server, exchange, routing_key, evt_key) => {
         addListener(evt_key, this.eventHandler(evt_key));
         const exchanges = [...this.state.exchanges];
-        exchanges.push({ server, exchange, routing_key, evt_key, data: {} });
-        this.setState(state => ({ exchanges }));
+        exchanges.push({ type: 'rmq', server, exchange, routing_key, evt_key, data: {} });
+        this.setState({ exchanges });
+    }
+
+
+    addZmqExchange = (server, port, evt_key) => {
+        addListener(evt_key, this.eventHandler(evt_key));
+        const exchanges = [...this.state.exchanges];
+        exchanges.push({ type: 'zmq', server, port, evt_key, data: {} });
+        this.setState({ exchanges });
+    }
+
+    addMqttExchange = (server, port, topic, evt_key) => {
+        addListener(evt_key, this.eventHandler(evt_key));
+        const exchanges = [...this.state.exchanges];
+        exchanges.push({ type: 'mqtt', server, port, topic, evt_key, data: {} });
+        this.setState({ exchanges });
     }
 
 
@@ -35,35 +55,52 @@ export class App extends Component {
         const index = this.state.exchanges.findIndex(ex => ex.evt_key == evt_key);
         const exchanges = this.state.exchanges.slice();
         exchanges.splice(index, 1);
-        this.setState(state => ({ exchanges }));
+        this.setState({ exchanges });
     }
 
 
-    openModal = () => { this.setState(state => ({ modal_isOpen: true })) }
+    openModal = () => { this.setState({ modal_isOpen: true }) }
 
 
-    closeModal = () => { this.setState(state => ({ modal_isOpen: false })) }
+    closeModal = () => { this.setState({ modal_isOpen: false }) }
 
+    exchangeExists = d => {
+        switch (d.type) {
+            case 'rmq':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
+            case 'zmq':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.port === d.port);
+            case 'mqtt':
+                return this.state.exchanges.find(ex => ex.server === d.server && ex.topic === d.topic);
+        }
+    }
 
     handleSubmit = d => {
-        console.log('request sent');
-        const exchange_found = this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
-        if (exchange_found) {
+        if (this.exchangeExists(d)) {
             alert('Already connected to this exchange');
         }
         else {
+            console.log('sending request');
             requestConnection(d, res => {
-                console.log('res', res);
                 if (res.error) {
                     alert(res.error);
-                    console.log('Error connecting to exchange', res.error);
+                    console.log('Server Error:', res.error);
                 }
                 else {
-                    this.addExchange(d.server, d.exchange, d.routing_key);
+                    console.log('Response:', res);
+                    switch (d.type) {
+                        case 'rmq':
+                            this.addRmqExchange(d.server, d.exchange, d.routing_key, res.event_key);
+                            break;
+                        case 'zmq':
+                            this.addZmqExchange(d.server, d.port, res.event_key);
+                            break;
+                        case 'mqtt':
+                            this.addMqttExchange(d.server, d.port, d.topic, res.event_key);
+                    }
                 }
             }); 
         }
-        
     }
 
 

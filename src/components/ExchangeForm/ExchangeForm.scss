@@ -1,33 +1,33 @@
-.exchange-form {
+.exchange-form{
     margin: 10rem;
-    padding: 10px;
+    padding: 20px;
     background: white;
-    .form-heading {
-        text-align: center;
-    }
-    @media (min-width: 960px) {
-        .form-heading {
-            text-align: initial;
-        }
-    }
-    .exchange-input {
+    border-radius: 5px;
+    overflow: hidden;
+    .form-select{
+        margin-bottom: -20px;
+        margin-left: -20px;
         display: flex;
-        justify-content: space-evenly;
-        flex-wrap: wrap;
-        padding:10px;
-        .form-input {
-            flex-basis: 70%;
-            margin-bottom: 12px;
-        }
-        @media (min-width: 960px) {
-            .form-input {
-                flex-basis: 30%;
+        justify-content: center;
+        margin-top: 10px;
+        .radio-group {
+            display: inline-block;
+            padding: 5px;
+            border-radius: 10px 10px 0 0;
+            padding-right: 10px;
+            background: #bbbbbb;
+            label {
+                margin-left: 0;
             }
         }
     }
-
-    .submit-area {
-        display: flex;
-        justify-content: center;
+    @media (min-width: 960px) {
+        .form-select {
+            justify-content: left;
+            .radio-group {
+                border-top-left-radius: 0;
+            }
+        }
     }
+    
 }
