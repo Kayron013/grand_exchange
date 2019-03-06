@@ -10,6 +10,9 @@
         .form-input {
             flex-basis: 70%;
             margin-bottom: 12px;
+            .inner-input input {
+                padding: 3px 0 0 0;
+            }
         }
         @media (min-width: 960px) {
             .form-input {

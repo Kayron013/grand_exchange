@@ -10,24 +10,30 @@ export class Exchange extends Component {
     state = {
         level: 1,
         isPaused: false,
-        isClosed: false
+        isClosed: false,
+        data: {}
     };
 
     json_ref = React.createRef();
     
-
-    shouldComponentUpdate = (next_props, next_state) => {
-        return !(this.state.isPaused && next_state.isPaused || this.state.isClosed && next_state.isClosed) || this.state.level != next_state.level;
+    static getDerivedStateFromProps = (props, state) => {
+        const new_data = JSON.stringify(props.data) != JSON.stringify(state.data);
+        if (new_data && !state.isPaused) return { data: props.data };
+        return null;
     }
+
+    // shouldComponentUpdate = (next_props, next_state) => {
+    //     return !(this.state.isPaused && next_state.isPaused) || this.state.isClosed != next_state.isClosed || this.state.level != next_state.level;
+    // }
 
 
     componentDidUpdate = (prev_props, prev_state) => {
-        const new_data = JSON.stringify(this.props.data) !== JSON.stringify(prev_props.data);
-        const new_level = this.state.level !== prev_state.level;
+        const new_data = JSON.stringify(this.state.data) != JSON.stringify(prev_state.data);
+        const new_level = this.state.level != prev_state.level;
         if (new_data || new_level) {
             //console.log('exchange updated', this.props);
             const old_child = this.json_ref.current.firstElementChild;
-            const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.props.data.content)
+            const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.state.data.content)
             //console.log('new json view constructed')
             this.json_ref.current.replaceChild(new_child, old_child);
         }
@@ -37,7 +43,7 @@ export class Exchange extends Component {
     updateLevel = new_level => { this.setState({ level: new_level }) }
 
     upGradeLevel = () => {
-        let depth = this.getdepth(this.props.data.content) - 1;
+        let depth = this.getdepth(this.state.data.content) - 1;
         let level = this.state.level;
         if(depth > level) this.setState({ level: level + 1 });
         
@@ -114,8 +120,8 @@ export class Exchange extends Component {
     }
 
     render() {
-        const { type, data = {} } = this.props;
-        const { isPaused, isClosed } = this.state;
+        const { type } = this.props;
+        const { isPaused, isClosed, data = {} } = this.state;
         return (
             <div className={'exchange ' + type}>
                 <div className='heading'>

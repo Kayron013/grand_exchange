@@ -61,7 +61,7 @@ const consume = (server, exchange, routing_key, res, ch, q) => {
 }
 
 
-const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject) => {
+const testExchange = (ex, is_durable, type, conn) => new Promise((resolve, reject) => {
     conn.createChannel((err, ch) => {
         ch.on('error', err => {
             switch (err.code) {
@@ -71,21 +71,23 @@ const testExchange = (ex, rk, is_durable, conn) => new Promise((resolve, reject)
                 case 406:
                     resolve([false, 'Exchange Declared With Incorrect Types']);
                     break;
+                default:
+                    resolve([false, `Unknown Channel Error (${err.code})`]);
+                console.log('**test exchange error**', err);
             }
-            console.log(err);
         });
         ch.checkExchange(ex);
-        ch.assertExchange(ex, rk ? 'direct' : 'fanout', { durable: is_durable }, (err, ok) => ok ? resolve([true]) : null);
+        ch.assertExchange(ex, type, { durable: is_durable }, (err, ok) => ok ? resolve([true]) : null);
     });
 });
 
 
-const makeRmqConnection = ({ username, password, server, exchange, routing_key = '', is_durable }, res) => {
+const makeRmqConnection = ({ username, password, server, exchange, routing_key = '', is_durable, type }, res) => {
     let calls = 0;
     amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
         calls++;
             if (err) {
-                console.log('**connection error**', err, err.code);
+                //console.log('**connection error**', err, err.code);
                 if (calls > 1) return;
                 switch (err.code) {
                     case undefined:
@@ -103,18 +105,19 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
                         break;
                     default:
                         res.json({ status: 'error', error: 'Unknown Connection Error' });
+                        console.log('**connection error**', err, err.code);
                         console.log('******************************\n******************************');
                 }
             }
             else {
-                console.log(server, exchange, routing_key, is_durable);
+                //console.log(server, exchange, routing_key, is_durable);
                 conn.createChannel(async (err, ch) => {
                     ch.on('error', err => console.log('Channel Error[1]', err));
                     if (err) console.log('channel error[2]', err);
                     else {
-                        const test = await testExchange(exchange, routing_key, is_durable, conn);
+                        const test = await testExchange(exchange, is_durable, type, conn);
                         if (test[0]) {          
-                            ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+                            ch.assertExchange(exchange, type, { durable: is_durable });
                             ch.assertQueue('', { exclusive: true }, (err, q) => {
                                 ch.bindQueue(q.queue, exchange, routing_key);
                                 connections.rmq[server] = {
@@ -146,10 +149,10 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
 }
 
 
-const reuseChannel = async ({ server, exchange, routing_key = '', is_durable }, res, conn, ch) => {
-    const test = await testExchange(exchange, routing_key, is_durable, conn);
+const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, type }, res, conn, ch) => {
+    const test = await testExchange(exchange, is_durable, type, conn);
     if (test[0]) {
-        ch.assertExchange(exchange, routing_key ? 'direct' : 'fanout', { durable: is_durable });
+        ch.assertExchange(exchange, type, { durable: is_durable });
         ch.assertQueue('', { exclusive: true }, (err, q) => {
             ch.bindQueue(q.queue, exchange, routing_key);
             connections.rmq[server].exchanges[exchange] = {
@@ -271,7 +274,12 @@ const mqttConsume = (client, server, topic , res) => {
 
 const makeMqttConnection = ({ server, topic, },  res) => {
     const client = mqtt.connect(`mqtt://${server}`);
+    const timeout = setTimeout(_ => {
+        client.end();
+        res.json({ status: 'error', error: 'Timed Out' });
+    }, 6000);
     client.on('connect', _ => {
+        clearTimeout(timeout);
         client.subscribe(topic, err => {
             if (err) {
                 console.log(err);

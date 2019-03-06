@@ -36,7 +36,7 @@ export class ZmqForm extends Component {
             alert("Fill out all required fields");
         }
         else {
-            this.props.onSubmit({ server: this.state.server.val, port: this.state.port.val, type: 'zmq' });
+            this.props.onSubmit({ server: this.state.server.val, port: this.state.port.val, exchange_type: 'zmq' });
         }
     }
 
@@ -60,6 +60,7 @@ export class ZmqForm extends Component {
                                 <InputAdornment position="end">
                                     <TextField
                                         value={this.state.port.val}
+                                        className='inner-input'
                                         InputProps={{ startAdornment: ':' }}
                                         onChange={this.handleChange('port')}
                                         onBlur={this.handleBlur('port')}
