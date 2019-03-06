@@ -40,16 +40,14 @@ export class Exchange extends Component {
     }
 
 
-    updateLevel = new_level => { this.setState({ level: new_level }) }
-
-    upGradeLevel = () => {
-        let depth = this.getdepth(this.state.data.content) - 1;
+    upgradeLevel = () => {
+        let depth = this.getdepth(this.state.data.content);
         let level = this.state.level;
         if(depth > level) this.setState({ level: level + 1 });
         
     }
 
-    downGradeLevel = () => {
+    downgradeLevel = () => {
         let level = this.state.level;
         if(level > 0) this.setState({ level: level - 1 });
     }
@@ -129,10 +127,10 @@ export class Exchange extends Component {
                         <Icon>close</Icon>
                     </Fab>
                     <ToggleButtonGroup className='lvl-button-group'>
-                        <Button className='btn' onClick={this.downGradeLevel}>
+                        <Button className='btn' onClick={this.downgradeLevel}>
                             <Icon>remove</Icon>
                         </Button>
-                        <Button className='btn' onClick={this.upGradeLevel}>
+                        <Button className='btn' onClick={this.upgradeLevel}>
                             <Icon>add</Icon>
                         </Button>          
                     </ToggleButtonGroup>
