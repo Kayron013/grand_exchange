@@ -88,7 +88,7 @@ export class App extends Component {
                 }
                 else {
                     console.log('Response:', res);
-                    switch (d.type) {
+                    switch (d.exchange_type) {
                         case 'rmq':
                             this.addRmqExchange(d.server, d.exchange, d.routing_key, res.event_key);
                             break;
