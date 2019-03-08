@@ -14,6 +14,7 @@ app.use(express.json());
 app.get('/', (req, res) => res.sendFile('index'));
 
 
+/// Allow connections from hot reloadable port
 app.use((req, res, next) => {
     if (req.headers.origin) {
         res.header({

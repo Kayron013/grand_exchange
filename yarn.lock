@@ -3099,6 +3099,11 @@ isstream@~0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/isstream/-/isstream-0.1.2.tgz#47e63f7af55afa6f92e1500e690eb8b8529c099a"
 
+jpickle@^0.4.1:
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/jpickle/-/jpickle-0.4.1.tgz#17eea5d3624cccec38f86e89a059abd05952364a"
+  integrity sha1-F+6l02JMzOw4+G6JoFmr0FlSNko=
+
 js-base64@^2.1.8:
   version "2.5.1"
   resolved "https://registry.yarnpkg.com/js-base64/-/js-base64-2.5.1.tgz#1efa39ef2c5f7980bb1784ade4a8af2de3291121"
@@ -3700,6 +3705,13 @@ node-libs-browser@^2.0.0:
     util "^0.11.0"
     vm-browserify "0.0.4"
 
+node-pickle@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/node-pickle/-/node-pickle-0.0.2.tgz#0ee3764ad67725a10eaad41e38d744d8a4639dd8"
+  integrity sha512-+y4I5vAgYlBpcpycHRtOSoLyxCuONTwF7IgZUoAAemmZbC+SGObsrku61FDvLyjufib2oFf2uQtE0Ar2FlR+uw==
+  dependencies:
+    bluebird "^3.5.3"
+
 node-pre-gyp@^0.10.0:
   version "0.10.3"
   resolved "https://registry.yarnpkg.com/node-pre-gyp/-/node-pre-gyp-0.10.3.tgz#3070040716afdc778747b61b6887bf78880b80fc"
@@ -4092,6 +4104,11 @@ pbkdf2@^3.0.3:
 performance-now@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/performance-now/-/performance-now-2.1.0.tgz#6309f4e0e5fa913ec1c69307ae364b4b377c9e7b"
+
+pickle@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/pickle/-/pickle-0.2.0.tgz#1b63adda34fbf6bc36727223d6bb2ddb9bd14106"
+  integrity sha1-G2Ot2jT79rw2cnIj1rst25vRQQY=
 
 pify@^2.0.0:
   version "2.3.0"
