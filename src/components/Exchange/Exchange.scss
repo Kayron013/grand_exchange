@@ -1,6 +1,3 @@
-.exchange.rmq { background: #2c1748; }
-.exchange.zmq { background: #481732; }
-.exchange.mqtt { background: #532053}
 .exchange {
     color: white;
     font-family: 'Roboto';
@@ -8,7 +5,9 @@
     background: #2c1748;
     padding: 6px;
     border-radius: 18px;
-
+    &.rmq { background: #2c1748 }
+    &.zmq { background: #481732 }
+    &.mqtt { background: #532053 }
     .heading{
         padding-bottom: 10px;
         .exchange-title{
@@ -62,10 +61,12 @@
         .json {
             background-color: #00182b;
             height: 500px;
-            padding: 0 18px;
+            padding: 18px 18px;
             overflow: auto;
             transition: height 1.5s;
+            &.closed { height: 0px }
             .renderjson {
+                margin-top: 0;
                 a { text-decoration: none; color: #fff; }
                 .disclosure { color: #696969; font-size: 125%; font-family: 'Material Icons' }
                 .syntax { color: grey; }
@@ -77,9 +78,6 @@
                 .object.syntax { color: #00fff0; }
                 .array.syntax  { color: #00fff0; }
             }
-        }
-        .json.closed {
-            height: 0px;
         }
         .footer {
             background-color: #1b1b1b;
