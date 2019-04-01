@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { Fab, Button, Icon, Typography, Link } from "@material-ui/core";
-import { ToggleButtonGroup } from '@material-ui/lab';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import { renderjson } from '../../lib/renderjson/renderjson';
+import { EnhancedJsonView } from '../EnhancedJsonView/EnhancedJsonView';
 import moment from "moment";
 import './Exchange.scss';
 
@@ -32,8 +33,8 @@ export class Exchange extends Component {
         const new_level = this.state.level != prev_state.level;
         if (new_data || new_level) {
             //console.log('exchange updated', this.props);
-            const old_child = this.json_ref.current.firstElementChild;
-            const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.state.data.content)
+            const old_child = this.json_ref.current.firstElementChild,
+                new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.state.data.content)
             //console.log('new json view constructed')
             this.json_ref.current.replaceChild(new_child, old_child);
         }
@@ -138,8 +139,18 @@ export class Exchange extends Component {
                     {this.renderHeading()}              
                 </div>
                 <div className='window'>
-                    <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>
-                        <div className='target-child'></div>
+                    <div className={'json' + (isClosed ? ' closed' : '')}>
+                        <div className='basic-json-view' hidden={this.state.isPaused} ref={this.json_ref}>
+                            <div className='target-child'></div>
+                        </div>
+                        {this.state.isPaused && <EnhancedJsonView 
+                            src={this.state.data.content} 
+                            theme='summerfruit' 
+                            collapsed={this.state.level}
+                            style={{
+                                background: 'transparent'
+                            }}
+                        />}
                     </div>
                     <div className='footer'>
                         <Button

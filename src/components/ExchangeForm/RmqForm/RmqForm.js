@@ -96,7 +96,7 @@ export class RmqForm extends Component {
         // const errors = this.validate(this.state.server, this.state.exchange,this.state.username,this.state.password);
         // const isDisabled = Object.keys(errors).some(x => errors[x]);
         return (
-            <form className='rmq-form' tabIndex={-1} onKeyPress={this.handleEnter} >
+            <form className='rmq-form' onKeyPress={this.handleEnter} >
                 <Typography variant='h6' className='form-heading'>Exchange Route</Typography>
                 <div className="form-group">
                     <TextField
