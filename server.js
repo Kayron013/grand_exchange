@@ -3,28 +3,22 @@ const express = require('express'),
     app = express(),
     http = require('http').Server(app),
     io = require('socket.io')(http),
+    reload = require('reload'),
+    reload_server = reload(app),
+    watch = require('watch'),
     amqp = require('amqplib/callback_api'),
     zmq = require('zeromq'),
     mqtt = require('mqtt');
+
+
+watch.watchTree('dist', _ => reload_server.reload());
+
 
 app.use(express.static(path.join(__dirname, 'dist/')));
 
 app.use(express.json());
 
 app.get('/', (req, res) => res.sendFile('index'));
-
-
-/// Allow connections from hot reloadable port
-app.use((req, res, next) => {
-    if (req.headers.origin) {
-        res.header({
-            'Access-Control-Allow-Origin': req.headers.origin.includes('localhost') ? req.headers.origin : '',
-            "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept",
-            'Vary': 'Origin'
-        });
-    }
-    next();
-});
 
 
 const connections = { rmq: {}, zmq: {}, mqtt: {} };
@@ -342,7 +336,10 @@ io.on('connection', socket => {
 });
 
 
-const isDead = heartbeat => Date.now() - heartbeat >= 3600000;
+/** 4 Days */
+const Threshold = 4 * 8.64e+7;
+
+const isDead = heartbeat => Date.now() - heartbeat >= Threshold;
 const checkHeartbeat = _ => {
     for (const type in connections) {
         for (const server in connections[type]) {
@@ -356,8 +353,8 @@ const checkHeartbeat = _ => {
     }
 }
 
-setInterval(checkHeartbeat, 3600000);
+setInterval(checkHeartbeat, Threshold);
 
 
 const port = 8083;
-http.listen(port, console.log(`Server listening on port ${port}.\nHot-reloadable server listening on port 8084`))
+http.listen(port, console.log(`Server listening on port ${port}.`))

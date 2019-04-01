@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Fab, Button, Icon, Typography, Link } from "@material-ui/core";
-import { ToggleButtonGroup } from '@material-ui/lab';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import { renderjson } from '../../lib/renderjson/renderjson';
 import { EnhancedJsonView } from '../EnhancedJsonView/EnhancedJsonView';
 import moment from "moment";

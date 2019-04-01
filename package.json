@@ -5,6 +5,10 @@
   "main": "index.js",
   "author": "Angel Campbell",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "http://10.9.79.196/AngelC/grand_exchange.git"
+  },
   "dependencies": {
     "@material-ui/core": "^3.9.2",
     "@material-ui/icons": "^3.0.2",
@@ -17,8 +21,10 @@
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
     "react-json-view": "^1.19.1",
+    "reload": "^2.4.0",
     "socket.io": "^2.2.0",
     "socket.io-client": "^2.2.0",
+    "watch": "^1.0.2",
     "zeromq": "^5.1.0"
   },
   "devDependencies": {
@@ -32,7 +38,6 @@
     "css-loader": "^2.1.0",
     "node-sass": "^4.11.0",
     "nodemon": "^1.18.10",
-    "reload": "^2.4.0",
     "sass-loader": "^7.1.0",
     "style-loader": "^0.23.1",
     "webpack": "^4.29.4",
@@ -41,7 +46,7 @@
   "scripts": {
     "start": "node server.js",
     "build": "webpack --mode production",
-    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\" \"reload -p 8084 -d dist\"",
+    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\"",
     "qstart": "webpack --mode development & node server.js"
   }
 }
