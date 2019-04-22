@@ -3,7 +3,7 @@ import io from "socket.io-client";
 const host = document.baseURI,
     path = host.includes('dataviz.nyct.com') ? '/grand_exchange/socket.io' : '/socket.io';
 
-const url = `http://${host}`;
+const url = `http://${location.host}`;
 
 const socket = io(url, { path });
 
