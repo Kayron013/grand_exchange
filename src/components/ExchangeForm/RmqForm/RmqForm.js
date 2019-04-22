@@ -153,6 +153,7 @@ export class RmqForm extends Component {
                         <FormControlLabel value='fanout' control={<Radio />} label='Fanout' />
                         <FormControlLabel value='direct' control={<Radio />} label='Direct' />
                         <FormControlLabel value='topic' control={<Radio />} label='Topic' />
+                        <FormControlLabel value='headers' control={<Radio />} label='Headers' />
                     </RadioGroup>
                 </div>
                 <Typography variant='h6' className='form-heading'>Server Credentials</Typography>
