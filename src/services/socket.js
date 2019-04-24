@@ -1,8 +1,11 @@
 import io from "socket.io-client";
 
-const url = `http://${location.hostname}:8083`;
+const host = document.baseURI,
+    path = host.includes('dataviz.nyct.com') ? '/grand_exchange/socket.io' : '/socket.io';
 
-const socket = io(url);
+const url = `http://${location.host}`;
+
+const socket = io(url, { path });
 
 window.socket = socket;
 
@@ -15,7 +18,7 @@ export const removeListener = (evt, handler) => socket.listeners(evt).pop();
 export const emitEvent = (evt, args) => socket.emit(evt, args);
 
 export const requestConnection = (args, fn) => {
-    let api_url = `${url}/connect/${args.type}`;
+    let api_url = `${host}connect/${args.exchange_type}`;
     fetch(api_url, { method: 'post', body: JSON.stringify(args), headers: { "Content-Type": "application/json" } })
         .then(d => d.json())
         .then(fn);

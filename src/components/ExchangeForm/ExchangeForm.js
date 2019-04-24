@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { FormControl, FormControlLabel, RadioGroup, Radio } from '@material-ui/core';
+import { FormControlLabel, RadioGroup, Radio } from '@material-ui/core';
 import { RmqForm } from './RmqForm/RmqForm';
 import { ZmqForm } from './ZmqForm/ZmqForm';
 import { MqttForm } from './MqttForm/MqttForm';
@@ -27,7 +27,7 @@ export class ExchangeForm extends Component {
 
     render() {
         return (
-            <div className='exchange-form'>
+            <div className='exchange-form' tabIndex={-1}>
                 {this.renderForm()}
                 <div className='form-select'>
                     <RadioGroup row className='radio-group' value={this.state.form} onChange={this.toggleForm}>

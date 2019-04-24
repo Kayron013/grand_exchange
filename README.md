@@ -1,9 +1,5 @@
 **Grand Exchange**
 
-This project is using `yarn` instead of `npm`
+This project provides a web interface for viewing `RabbitMQ`, `ZeroMQ`, and `Mosquitto` JSON data streams.
 
-Install Dependencies:
-`yarn install`
-
-Start Development Env:
-`yarn dev`
+The JSON data is formatted as such and the stream can be paused for inspection.

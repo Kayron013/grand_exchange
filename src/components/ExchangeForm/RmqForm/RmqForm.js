@@ -1,23 +1,25 @@
 import React, { Component } from 'react';
-import { TextField, InputAdornment, Icon, IconButton, Typography, Button, FormControlLabel, Checkbox } from '@material-ui/core';
+import { TextField, InputAdornment, Icon, IconButton, Typography, Button, FormControlLabel, Checkbox, RadioGroup, Radio } from '@material-ui/core';
 import './RmqForm.scss';
 
 
 export class RmqForm extends Component {
     state = {
-        server: '10.50.78.90',
-        exchange: 'slow_segment_exchange',
+        server: '',
+        exchange: '',
         routing_key: '',
         is_durable: false,
-        username: 'sire',
-        password: 'sire001a',
+        type: 'fanout',
+        username: '',
+        password: '',
         show_password: false,
         //record if the all necessary textfiled has been click
         touched: {
             server: false,
             exchange: false,
             username:false,
-            password:false
+            password: false,
+            type: false
       }
     }
 
@@ -43,13 +45,14 @@ export class RmqForm extends Component {
                     server: true,
                     exchange: true,
                     username: true,
-                    password: true
+                    password: true,
+                    type: true
                 }
             });
             alert("Fill out all required fields");
         }
         else {
-            this.props.onSubmit({ ...this.state, type: 'rmq' });
+            this.props.onSubmit({ ...this.state, exchange_type: 'rmq' });
         }
 
     } 
@@ -93,7 +96,7 @@ export class RmqForm extends Component {
         // const errors = this.validate(this.state.server, this.state.exchange,this.state.username,this.state.password);
         // const isDisabled = Object.keys(errors).some(x => errors[x]);
         return (
-            <form className='rmq-form' tabIndex={-1} onKeyPress={this.handleEnter} >
+            <form className='rmq-form' onKeyPress={this.handleEnter} >
                 <Typography variant='h6' className='form-heading'>Exchange Route</Typography>
                 <div className="form-group">
                     <TextField
@@ -133,6 +136,9 @@ export class RmqForm extends Component {
                             startAdornment: <InputAdornment position="start"><Icon>pageview</Icon></InputAdornment>
                         }}
                     />
+                </div>
+                <Typography variant='h6' className='form-heading'>Exchange Type</Typography>
+                <div className='form-group'>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -141,8 +147,14 @@ export class RmqForm extends Component {
                                 color='primary'
                             />
                         }
-                        label='Exchange is Durable'
+                        label='Durable'
                     />
+                    <RadioGroup row className='radio-group' value={this.state.type} onChange={this.handleChange('type')} onBlur={this.handleBlur('type')}>
+                        <FormControlLabel value='fanout' control={<Radio />} label='Fanout' />
+                        <FormControlLabel value='direct' control={<Radio />} label='Direct' />
+                        <FormControlLabel value='topic' control={<Radio />} label='Topic' />
+                        <FormControlLabel value='headers' control={<Radio />} label='Headers' />
+                    </RadioGroup>
                 </div>
                 <Typography variant='h6' className='form-heading'>Server Credentials</Typography>
                 <div className="form-group">

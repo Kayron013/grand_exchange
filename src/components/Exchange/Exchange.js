@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { Fab, Button, Icon, Typography, Link } from "@material-ui/core";
-import { ToggleButtonGroup } from '@material-ui/lab';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import { renderjson } from '../../lib/renderjson/renderjson';
+import { EnhancedJsonView } from '../EnhancedJsonView/EnhancedJsonView';
 import moment from "moment";
 import './Exchange.scss';
 
@@ -10,40 +11,44 @@ export class Exchange extends Component {
     state = {
         level: 1,
         isPaused: false,
-        isClosed: false
+        isClosed: false,
+        data: {}
     };
 
     json_ref = React.createRef();
     
-
-    shouldComponentUpdate = (next_props, next_state) => {
-        return !(this.state.isPaused && next_state.isPaused || this.state.isClosed && next_state.isClosed) || this.state.level != next_state.level;
+    static getDerivedStateFromProps = (props, state) => {
+        const new_data = JSON.stringify(props.data) != JSON.stringify(state.data);
+        if (new_data && !state.isPaused) return { data: props.data };
+        return null;
     }
+
+    // shouldComponentUpdate = (next_props, next_state) => {
+    //     return !(this.state.isPaused && next_state.isPaused) || this.state.isClosed != next_state.isClosed || this.state.level != next_state.level;
+    // }
 
 
     componentDidUpdate = (prev_props, prev_state) => {
-        const new_data = JSON.stringify(this.props.data) !== JSON.stringify(prev_props.data);
-        const new_level = this.state.level !== prev_state.level;
+        const new_data = JSON.stringify(this.state.data) != JSON.stringify(prev_state.data);
+        const new_level = this.state.level != prev_state.level;
         if (new_data || new_level) {
             //console.log('exchange updated', this.props);
-            const old_child = this.json_ref.current.firstElementChild;
-            const new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.props.data.content)
+            const old_child = this.json_ref.current.firstElementChild,
+                new_child = renderjson.set_icons('chevron_right', 'expand_more').set_show_to_level(this.state.level)(this.state.data.content)
             //console.log('new json view constructed')
             this.json_ref.current.replaceChild(new_child, old_child);
         }
     }
 
 
-    updateLevel = new_level => { this.setState({ level: new_level }) }
-
-    upGradeLevel = () => {
-        let depth = this.getdepth(this.props.data.content) - 1;
+    upgradeLevel = () => {
+        let depth = this.getdepth(this.state.data.content);
         let level = this.state.level;
         if(depth > level) this.setState({ level: level + 1 });
         
     }
 
-    downGradeLevel = () => {
+    downgradeLevel = () => {
         let level = this.state.level;
         if(level > 0) this.setState({ level: level - 1 });
     }
@@ -114,8 +119,8 @@ export class Exchange extends Component {
     }
 
     render() {
-        const { type, data = {} } = this.props;
-        const { isPaused, isClosed } = this.state;
+        const { type } = this.props;
+        const { isPaused, isClosed, data = {} } = this.state;
         return (
             <div className={'exchange ' + type}>
                 <div className='heading'>
@@ -123,10 +128,10 @@ export class Exchange extends Component {
                         <Icon>close</Icon>
                     </Fab>
                     <ToggleButtonGroup className='lvl-button-group'>
-                        <Button className='btn' onClick={this.downGradeLevel}>
+                        <Button className='btn' onClick={this.downgradeLevel}>
                             <Icon>remove</Icon>
                         </Button>
-                        <Button className='btn' onClick={this.upGradeLevel}>
+                        <Button className='btn' onClick={this.upgradeLevel}>
                             <Icon>add</Icon>
                         </Button>          
                     </ToggleButtonGroup>
@@ -134,8 +139,18 @@ export class Exchange extends Component {
                     {this.renderHeading()}              
                 </div>
                 <div className='window'>
-                    <div className={'json' + (isClosed ? ' closed' : '')} ref={this.json_ref}>
-                        <div className='target-child'></div>
+                    <div className={'json' + (isClosed ? ' closed' : '')}>
+                        <div className='basic-json-view' hidden={this.state.isPaused} ref={this.json_ref}>
+                            <div className='target-child'></div>
+                        </div>
+                        {this.state.isPaused && <EnhancedJsonView 
+                            src={this.state.data.content} 
+                            theme='summerfruit' 
+                            collapsed={this.state.level}
+                            style={{
+                                background: 'transparent'
+                            }}
+                        />}
                     </div>
                     <div className='footer'>
                         <Button

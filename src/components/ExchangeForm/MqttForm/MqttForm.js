@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { TextField, InputAdornment, Input, Icon, Typography, Button } from '@material-ui/core';
+import { TextField, InputAdornment, Icon, Typography, Button } from '@material-ui/core';
 import './MqttForm.scss';
 
 export class MqttForm extends Component {
@@ -38,7 +38,7 @@ export class MqttForm extends Component {
             alert("Fill out all required fields");
         }
         else {
-            this.props.onSubmit({ server: this.state.server.val, /*port: this.state.port.val,*/ topic: this.state.topic.val, type: 'mqtt' });
+            this.props.onSubmit({ server: this.state.server.val, /*port: this.state.port.val,*/ topic: this.state.topic.val, exchange_type: 'mqtt' });
         }
     }
 
