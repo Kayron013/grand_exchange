@@ -46,7 +46,7 @@
   "scripts": {
     "start": "node server.js",
     "build": "webpack --mode production",
-    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9228 server.js --watch server.js\" \"webpack --mode development --watch\"",
+    "dev": "concurrently -k \"nodemon --inspect=0.0.0.0:9223 server.js --watch server.js\" \"webpack --mode development --watch\"",
     "qstart": "webpack --mode development & node server.js"
   }
 }
