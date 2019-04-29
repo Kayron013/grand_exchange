@@ -3,6 +3,7 @@ const express = require('express'),
     app = express(),
     http = require('http').Server(app),
     io = require('socket.io')(http),
+    port = 8083,
     reload = require('reload'),
     reload_server = reload(app),
     watch = require('watch'),
@@ -329,10 +330,17 @@ app.post('/connect/mqtt', (req, res) => {
 //
 
 io.on('connection', socket => {
-    socket.on('heartbeat', arr => arr.forEach(el => {
-        if (connections[el.type][el.server])
-            connections[el.type][el.server].heartbeat = Date.now()
-    }));
+    socket.on('heartbeat', arr => {
+        arr.forEach(el => {
+            const dead_connections = [];
+            if (connections[el.type][el.server])
+                connections[el.type][el.server].heartbeat = Date.now()
+            else
+                dead_connections.push(el);
+        });
+        if (dead_connections.length)
+            socket.emit('dead-connection', el);
+    });
 });
 
 
@@ -356,5 +364,8 @@ const checkHeartbeat = _ => {
 setInterval(checkHeartbeat, Threshold);
 
 
-const port = 8083;
-http.listen(port, console.log(`Server listening on port ${port}.`))
+http.listen(port, function () {
+    let date = new Date();
+    console.log('Current Datetime:', date.toLocaleDateString(), date.toLocaleTimeString());
+    console.log(`listening on port ${port}`);
+});
