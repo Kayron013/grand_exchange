@@ -207,9 +207,19 @@ app.post('/connect/rmq', (req, res) => {
 //
 //
 
+const pingServer = server => {
+    //TODO: npm i ping
+    return true;
+}
+
 const makeZmqConnection = ({ server, port }, res) => {
     const event_key = getEventKey('zmq', { server, port }),
-        socket = zmq.socket('sub');
+        socket = zmq.socket('sub'),
+        is_alive = pingServer(server);
+    
+    if (!is_alive) {
+        return res.json({ status: 'error', error: 'Server Unreachable' });
+    }
     socket.connect(`tcp://${server}:${port}`);
     socket.on('message', msg => {
         try {

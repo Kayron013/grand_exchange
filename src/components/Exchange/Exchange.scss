@@ -64,6 +64,13 @@
             padding: 18px 18px;
             overflow: auto;
             transition: height 1.5s;
+            &::-webkit-scrollbar {
+                width: 5px;
+            }
+            &::-webkit-scrollbar-thumb {
+                border-radius: 10px;
+                background: #ffffff8f;
+            }
             &.closed { height: 0px }
             .renderjson {
                 margin-top: 0;
