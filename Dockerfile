@@ -10,7 +10,7 @@ RUN npm install --production
 
 COPY . /app/
 
-ENV basename href="http://dataviz.nyct.com/grand_exchange/"
+ENV basename href="/grand_exchange/"
 
 RUN sed -i "s,#basename,$basename,; s,reload/reload.js, ," "dist/index.html"
 
