@@ -63,7 +63,7 @@
             height: 500px;
             padding: 18px 18px;
             overflow: auto;
-            transition: height 1.5s;
+            transition: height 1.5s, padding 1.5s;
             &::-webkit-scrollbar {
                 width: 5px;
             }
@@ -71,7 +71,11 @@
                 border-radius: 10px;
                 background: #ffffff8f;
             }
-            &.closed { height: 0px }
+            &.closed { 
+                height: 0px;
+                padding-top: 0;
+                padding-bottom: 0;
+            }
             .renderjson {
                 margin-top: 0;
                 a { text-decoration: none; color: #fff; }
