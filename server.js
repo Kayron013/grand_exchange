@@ -9,7 +9,8 @@ const express = require('express'),
     watch = require('watch'),
     amqp = require('amqplib/callback_api'),
     zmq = require('zeromq'),
-    mqtt = require('mqtt');
+    mqtt = require('mqtt'),
+    ping = require('ping');
 
 
 watch.watchTree('dist', _ => reload_server.reload());
@@ -207,9 +208,30 @@ app.post('/connect/rmq', (req, res) => {
 //
 //
 
-const makeZmqConnection = ({ server, port }, res) => {
+const pingServer = async server => {
+    const res = { is_alive: false, err: null };
+
+    await ping.promise.probe(server).then(r => {
+        res.is_alive = r.alive;
+    }).catch(err => {
+        res.err = err;
+    })
+    
+    return res;
+}
+
+const makeZmqConnection = async ({ server, port }, res) => {
     const event_key = getEventKey('zmq', { server, port }),
-        socket = zmq.socket('sub');
+        socket = zmq.socket('sub'),
+        ping_res = await pingServer(server);
+    
+    if (ping_res.err) {
+        console.log(`Error pinging ${server}`);
+        return res.json({status: 'error', error: 'Server Error'})
+    }
+    else if (!ping_res.is_alive) {
+        return res.json({ status: 'error', error: 'Server Unreachable' });
+    }
     socket.connect(`tcp://${server}:${port}`);
     socket.on('message', msg => {
         try {
@@ -331,8 +353,8 @@ app.post('/connect/mqtt', (req, res) => {
 
 io.on('connection', socket => {
     socket.on('heartbeat', arr => {
+        const dead_connections = [];
         arr.forEach(el => {
-            const dead_connections = [];
             if (connections[el.type][el.server])
                 connections[el.type][el.server].heartbeat = Date.now()
             else
