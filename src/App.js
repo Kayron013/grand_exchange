@@ -127,7 +127,7 @@ export class App extends Component {
                         </Fab>
                     </Toolbar>
                 </AppBar>
-                <Modal open={modal_isOpen} onClose={this.closeModal}>
+                <Modal className='modal' open={modal_isOpen} onClose={this.closeModal}>
                     <ExchangeForm onSubmit={this.handleSubmit}></ExchangeForm>
                 </Modal>
                 <main>
