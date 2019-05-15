@@ -54,6 +54,10 @@ const pingServer = async server => {
 //
 //
 
+/** A name that identifies GE queues in an exchange's bindings list. */
+const nameQ = () => 'grand-exchange_' + Math.random();
+
+
 const consume = (server, exchange, routing_key, res, ch, q) => {
     const event_key = getEventKey('rmq', {server, exchange, routing_key });
     res.json({ status: 'ok', event_key });
@@ -82,7 +86,7 @@ const testExchange = (ex, is_durable, type, conn) => new Promise((resolve, rejec
                     break;
                 default:
                     resolve([false, `Unknown Channel Error (${err.code})`]);
-                console.log('**test exchange error**', err);
+                    console.log('**test exchange error**', err);
             }
         });
         ch.checkExchange(ex);
@@ -127,7 +131,7 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
                         const test = await testExchange(exchange, is_durable, type, conn);
                         if (test[0]) {          
                             ch.assertExchange(exchange, type, { durable: is_durable });
-                            ch.assertQueue('', { exclusive: true }, (err, q) => {
+                            ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
                                 ch.bindQueue(q.queue, exchange, routing_key);
                                 connections.rmq[server] = {
                                     connection: conn,
@@ -149,7 +153,6 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
                         else {
                             conn.close();
                             res.json({ status: 'error', error: test[1] });
-                            console.log(test[1])
                         }
                     }
                 });
@@ -162,7 +165,7 @@ const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, ty
     const test = await testExchange(exchange, is_durable, type, conn);
     if (test[0]) {
         ch.assertExchange(exchange, type, { durable: is_durable });
-        ch.assertQueue('', { exclusive: true }, (err, q) => {
+        ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
             ch.bindQueue(q.queue, exchange, routing_key);
             connections.rmq[server].exchanges[exchange] = {
                 routes: {
@@ -174,13 +177,12 @@ const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, ty
     }
     else {
         res.json({ status: 'error', error: test[1] });
-        console.log(test[1])
     }
 }
 
 
 const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
-    ch.assertQueue('', { exclusive: true }, (err, q) => {
+    ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
         ch.bindQueue(q.queue, exchange, routing_key);
         connections.rmq[server].exchanges[exchange].routes[routing_key] = { connections: 1 };
         consume(server, exchange, routing_key, res, ch, q);
@@ -209,7 +211,7 @@ app.post('/connect/rmq', (req, res) => {
     }
     else {
         makeRmqConnection(req.body, res);
-        console.log('new connection =>', event_key);
+        console.log('attempted new connection =>', event_key);
     }
 });
 
@@ -261,7 +263,7 @@ app.post('/connect/zmq', (req, res) => {
     }
     else {
         makeZmqConnection(req.body, res);
-        console.log('new connection =>', event_key);
+        console.log('attempted new connection =>', event_key);
     }
 });
 
@@ -368,7 +370,7 @@ app.post('/connect/mqtt', (req, res) => {
     }
     else {
         makeMqttConnection(req.body, res);
-        console.log('new connection =>', event_key);
+        console.log('attempted new connection =>', event_key);
     }
 });
 
