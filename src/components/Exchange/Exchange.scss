@@ -66,6 +66,7 @@
             transition: height 1.5s, padding 1.5s;
             &::-webkit-scrollbar {
                 width: 5px;
+                height: 5px;
             }
             &::-webkit-scrollbar-thumb {
                 border-radius: 10px;
