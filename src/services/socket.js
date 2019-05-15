@@ -4,9 +4,7 @@ const host = document.baseURI,
     res = host.match(/[\w\.-]+(:\d+)?\/(\w+)\//),
     path = res ? `/${res[2]}/socket.io` : '/socket.io';
 
-const url = `http://${location.host}`;
-
-const socket = io(url, { path });
+const socket = io({ path });
 
 window.socket = socket;
 
