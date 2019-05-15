@@ -72,6 +72,9 @@
                 border-radius: 10px;
                 background: #ffffff8f;
             }
+            &::-webkit-scrollbar-corner {
+                background: #00000000;
+            }
             &.closed { 
                 height: 0px;
                 padding-top: 0;
