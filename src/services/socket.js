@@ -1,7 +1,8 @@
 import io from "socket.io-client";
 
 const host = document.baseURI,
-    path = host.includes('dataviz.nyct.com') ? '/grand_exchange/socket.io' : '/socket.io';
+    res = host.match(/[\w\.-]+(:\d+)?\/(\w+)\//),
+    path = res ? `/${res[2]}/socket.io` : '/socket.io';
 
 const url = `http://${location.host}`;
 

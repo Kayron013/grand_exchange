@@ -65,7 +65,7 @@ export class App extends Component {
     closeModal = () => { this.setState({ modal_isOpen: false }) }
 
     exchangeExists = d => {
-        switch (d.type) {
+        switch (d.exchange_type) {
             case 'rmq':
                 return this.state.exchanges.find(ex => ex.server === d.server && ex.exchange === d.exchange && ex.routing_key === d.routing_key);
             case 'zmq':
@@ -127,7 +127,7 @@ export class App extends Component {
                         </Fab>
                     </Toolbar>
                 </AppBar>
-                <Modal open={modal_isOpen} onClose={this.closeModal}>
+                <Modal className='modal' open={modal_isOpen} onClose={this.closeModal}>
                     <ExchangeForm onSubmit={this.handleSubmit}></ExchangeForm>
                 </Modal>
                 <main>

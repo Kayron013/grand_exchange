@@ -9,7 +9,8 @@ const express = require('express'),
     watch = require('watch'),
     amqp = require('amqplib/callback_api'),
     zmq = require('zeromq'),
-    mqtt = require('mqtt');
+    mqtt = require('mqtt'),
+    ping = require('ping');
 
 
 watch.watchTree('dist', _ => reload_server.reload());
@@ -30,6 +31,19 @@ const getEventKey = (type, props) =>
     type == 'rmq' ? `rmq::${props.server}::${props.exchange}::${props.routing_key}` :
     type == 'zmq' ? `zmq::${props.server}:${props.port}` :
     type == 'mqtt' ? `mqtt::${props.server}::${props.topic}` : null;
+    
+
+const pingServer = async server => {
+    const res = { is_alive: false, err: null };
+
+    await ping.promise.probe(server).then(r => {
+        res.is_alive = r.alive;
+    }).catch(err => {
+        res.err = err;
+    })
+    
+    return res;
+}
 
 
 //
@@ -42,7 +56,6 @@ const getEventKey = (type, props) =>
 
 const consume = (server, exchange, routing_key, res, ch, q) => {
     const event_key = getEventKey('rmq', {server, exchange, routing_key });
-    console.log('new connection =>', event_key);
     res.json({ status: 'ok', event_key });
     ch.consume(q.queue, msg => {
         try {
@@ -196,6 +209,7 @@ app.post('/connect/rmq', (req, res) => {
     }
     else {
         makeRmqConnection(req.body, res);
+        console.log('new connection =>', event_key);
     }
 });
 
@@ -207,9 +221,18 @@ app.post('/connect/rmq', (req, res) => {
 //
 //
 
-const makeZmqConnection = ({ server, port }, res) => {
+const makeZmqConnection = async ({ server, port }, res) => {
     const event_key = getEventKey('zmq', { server, port }),
-        socket = zmq.socket('sub');
+        socket = zmq.socket('sub'),
+        ping_res = await pingServer(server);
+    
+    if (ping_res.err) {
+        console.log(`Error pinging ${server}`);
+        return res.json({status: 'error', error: 'Server Error'})
+    }
+    else if (!ping_res.is_alive) {
+        return res.json({ status: 'error', error: 'Server Unreachable' });
+    }
     socket.connect(`tcp://${server}:${port}`);
     socket.on('message', msg => {
         try {
@@ -227,7 +250,6 @@ const makeZmqConnection = ({ server, port }, res) => {
         heartbeat: Date.now(),
         close: function () { this.socket.close() } 
     };
-    console.log('new connection =>', event_key);
 }
 
 
@@ -239,6 +261,7 @@ app.post('/connect/zmq', (req, res) => {
     }
     else {
         makeZmqConnection(req.body, res);
+        console.log('new connection =>', event_key);
     }
 });
 
@@ -264,21 +287,48 @@ const mqttConsume = (client, server, topic , res) => {
             }
         }
     });
-    console.log('new connection =>', event_key);
 }
 
 
-const makeMqttConnection = ({ server, topic, },  res) => {
+const makeMqttConnection = async ({ server, topic, },  res) => {
     const client = mqtt.connect(`mqtt://${server}`);
-    const timeout = setTimeout(_ => {
+    let error = null;
+
+    client.on('error', err => {
+        error = true;
+        switch (err.code) {
+            case 4:
+                res.json({ status: 'error', error: 'Connection Refused' });
+                break;
+            default:
+                console.log('Mqtt Error:', err);
+                res.json({ status: 'error', error: 'Unknown Connection Error' });
+        }
+    });
+
+    const ping_res = await pingServer(server);
+    
+    if (!error && ping_res.err) {
+        console.log(`Error pinging ${server}`);
+        return res.json({status: 'error', error: 'Server Error'})
+    }
+    else if (!error && !ping_res.is_alive) {
+        return res.json({ status: 'error', error: 'Server Unreachable' });
+    }
+
+    timeout = setTimeout(_ => {
+        if (error) return;
         client.end();
         res.json({ status: 'error', error: 'Timed Out' });
     }, 6000);
+
+    
+
     client.on('connect', _ => {
         clearTimeout(timeout);
         client.subscribe(topic, err => {
             if (err) {
-                console.log(err);
+                console.log('mqtt subscribe err', err);
                 res.json({ status: 'error', error: '' });
             }
             else {
@@ -318,6 +368,7 @@ app.post('/connect/mqtt', (req, res) => {
     }
     else {
         makeMqttConnection(req.body, res);
+        console.log('new connection =>', event_key);
     }
 });
 
@@ -331,15 +382,15 @@ app.post('/connect/mqtt', (req, res) => {
 
 io.on('connection', socket => {
     socket.on('heartbeat', arr => {
+        const dead_connections = [];
         arr.forEach(el => {
-            const dead_connections = [];
             if (connections[el.type][el.server])
                 connections[el.type][el.server].heartbeat = Date.now()
             else
                 dead_connections.push(el);
         });
         if (dead_connections.length)
-            socket.emit('dead-connection', el);
+            socket.emit('dead-connection', dead_connections);
     });
 });
 

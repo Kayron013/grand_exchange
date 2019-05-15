@@ -1,10 +1,11 @@
-.exchange-form{
-    margin: 10rem;
+.exchange-form {
     padding: 20px;
     background: white;
     border-radius: 5px;
-    overflow: hidden;
-    .form-select{
+    overflow: auto;
+    width: 70vw;
+    max-height: 70vh;
+    .form-select {
         margin-bottom: -20px;
         margin-left: -20px;
         display: flex;
