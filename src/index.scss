@@ -1,10 +1,11 @@
 body {
-    margin: 0;
-    height: 1vh;
-    background-color: #3b2558;
-    .modal {
-        display: flex;
-        align-items: center;
-        justify-content: center
-    }
+  margin: 0;
+  height: 1vh;
+  background-color: #3b2558;
+  font-family: "Roboto Condensed", sans-serif;
+  .modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
