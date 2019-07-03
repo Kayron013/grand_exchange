@@ -37,8 +37,8 @@ export class App extends Component {
       console.log(exchange.paused_data);
     }
     if (!exchange.is_paused) {
-      exchange.position = 9;
-      exchange.datum = exchange.data[9];
+      exchange.position = MAX_HISTORY - 1;
+      exchange.datum = exchange.data[MAX_HISTORY - 1];
     }
     this.setState({ exchanges });
   };
@@ -88,7 +88,7 @@ export class App extends Component {
       routing_key,
       evt_key,
       data: new Array(MAX_HISTORY).fill({ content: {} }),
-      position: 9
+      position: MAX_HISTORY - 1
     });
     this.setState({ exchanges });
   };
@@ -96,14 +96,29 @@ export class App extends Component {
   addZmqExchange = (server, port, evt_key) => {
     addListener(evt_key, this.eventHandler(evt_key));
     const exchanges = [ ...this.state.exchanges ];
-    exchanges.push({ type: 'zmq', server, port, evt_key, data: {} });
+    exchanges.push({
+      type: 'zmq',
+      server,
+      port,
+      evt_key,
+      data: new Array(MAX_HISTORY).fill({ content: {} }),
+      position: MAX_HISTORY - 1
+    });
     this.setState({ exchanges });
   };
 
   addMqttExchange = (server, port, topic, evt_key) => {
     addListener(evt_key, this.eventHandler(evt_key));
     const exchanges = [ ...this.state.exchanges ];
-    exchanges.push({ type: 'mqtt', server, port, topic, evt_key, data: {} });
+    exchanges.push({
+      type: 'mqtt',
+      server,
+      port,
+      topic,
+      evt_key,
+      data: new Array(MAX_HISTORY).fill({ content: {} }),
+      position: MAX_HISTORY - 1
+    });
     this.setState({ exchanges });
   };
 

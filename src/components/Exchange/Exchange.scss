@@ -149,6 +149,9 @@
           &:hover {
             background-color: #00000047;
           }
+          &:disabled {
+            color: #878787;
+          }
         }
       }
     }
