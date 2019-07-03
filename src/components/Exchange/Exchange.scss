@@ -1,115 +1,156 @@
 .exchange {
-    color: white;
-    font-family: 'Roboto';
-    width: 100%;
+  color: white;
+  font-family: 'Roboto';
+  width: 100%;
+  background: #2c1748;
+  padding: 6px;
+  border-radius: 18px;
+  &.rmq {
     background: #2c1748;
-    padding: 6px;
-    border-radius: 18px;
-    &.rmq { background: #2c1748 }
-    &.zmq { background: #481732 }
-    &.mqtt { background: #532053 }
-    .heading{
-        padding-bottom: 10px;
-        .exchange-title{
-            height: 60px;
-            .exchange-name {
-                text-align: center;
-                // font-size: 2.2vw;
-            }
-            .server {
-                text-align: center;
-                // font-size: 1.5vw;
-            }
-
-        }
-        .close-btn {
-            float: left;
-            // left: -14px;
-            // top: -18px;
-            margin-right: -40px;
-        }
-        .lvl-button-group {
-            display: inline-flex;
-            float: right;
-            background-color: transparent;
-            margin-left: -148px;
-            .btn {
-                color: white;
-            }
-            .btn:hover {
-                background-color: #00000047;
-            }
-        }
-        .typeName{
-            display: inline-flex;
-            float: right;
-            margin-top:38px;
-            margin-right: 25px;
-            margin-left:-100px; 
-            color: white;
-            border-radius: 20px;
-            padding:  5px 20px ;
-            background: #00000047;
-            text-transform: uppercase;
-        }
+  }
+  &.zmq {
+    background: #481732;
+  }
+  &.mqtt {
+    background: #532053;
+  }
+  .heading {
+    padding-bottom: 10px;
+    .exchange-title {
+      height: 60px;
+      .exchange-name {
+        text-align: center;
+        // font-size: 2.2vw;
+      }
+      .server {
+        text-align: center;
+        // font-size: 1.5vw;
+      }
     }
-    .window {
-        border-radius: 15px;
-        overflow: hidden;
-        width:100%;
-        margin-top: 5px;
-        .json {
-            background-color: #00182b;
-            height: 500px;
-            padding: 18px 18px;
-            overflow: auto;
-            transition: height 1.5s, padding 1.5s;
-            &::-webkit-scrollbar {
-                width: 5px;
-                height: 5px;
-            }
-            &::-webkit-scrollbar-thumb {
-                border-radius: 10px;
-                background: #ffffff8f;
-            }
-            &::-webkit-scrollbar-corner {
-                background: #00000000;
-            }
-            &.closed { 
-                height: 0px;
-                padding-top: 0;
-                padding-bottom: 0;
-            }
-            .renderjson {
-                margin-top: 0;
-                a { text-decoration: none; color: #fff; }
-                .disclosure { color: #696969; font-size: 125%; font-family: 'Material Icons' }
-                .syntax { color: grey; }
-                .string { color: #ffa900; }
-                .number { color: #fff000; }
-                .boolean { color: #fff000; }
-                .key    { color: #ffffff; }
-                .keyword { color: #ff44b3; }
-                .object.syntax { color: #00fff0; }
-                .array.syntax  { color: #00fff0; }
-            }
-        }
-        .footer {
-            background-color: #1b1b1b;
-            height: 36px;
-            .btn {
-                width: 64px;
-                border-top-left-radius: 0;
-            }
-            .last-received {
-                display: inline-block;
-                width: calc(100% - 64px);
-                text-align: center;
-                vertical-align: middle;
-                font-size: .9rem;
-                cursor: pointer;
-            }
-        }
+    .close-btn {
+      float: left;
+      // left: -14px;
+      // top: -18px;
+      margin-right: -40px;
     }
-    
+    .lvl-btn-group {
+      display: inline-flex;
+      float: right;
+      background-color: transparent;
+      margin-left: -148px;
+      .btn {
+        color: white;
+        &:hover {
+          background-color: #00000047;
+        }
+      }
+    }
+    .typeName {
+      display: inline-flex;
+      float: right;
+      margin-top: 38px;
+      margin-right: 25px;
+      margin-left: -100px;
+      color: white;
+      border-radius: 20px;
+      padding: 5px 20px;
+      background: #00000047;
+      text-transform: uppercase;
+    }
+  }
+  .window {
+    border-radius: 15px;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 5px;
+    .json {
+      background-color: #00182b;
+      height: 500px;
+      padding: 18px 18px;
+      overflow: auto;
+      transition: height 1.5s, padding 1.5s;
+      &::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      &::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background: #ffffff8f;
+      }
+      &::-webkit-scrollbar-corner {
+        background: #00000000;
+      }
+      &.closed {
+        height: 0px;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+      .renderjson {
+        margin-top: 0;
+        a {
+          text-decoration: none;
+          color: #fff;
+        }
+        .disclosure {
+          color: #696969;
+          font-size: 125%;
+          font-family: 'Material Icons';
+        }
+        .syntax {
+          color: grey;
+        }
+        .string {
+          color: #ffa900;
+        }
+        .number {
+          color: #fff000;
+        }
+        .boolean {
+          color: #fff000;
+        }
+        .key {
+          color: #ffffff;
+        }
+        .keyword {
+          color: #ff44b3;
+        }
+        .object.syntax {
+          color: #00fff0;
+        }
+        .array.syntax {
+          color: #00fff0;
+        }
+      }
+    }
+    .footer {
+      background-color: #1b1b1b;
+      height: 36px;
+      position: relative;
+      & > .btn {
+        width: 64px;
+        border-top-left-radius: 0;
+        position: absolute;
+        left: 0;
+      }
+      .last-received {
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+        vertical-align: middle;
+        font-size: .9rem;
+        cursor: pointer;
+      }
+      .position-btn-group {
+        position: absolute;
+        right: 0;
+        display: inline;
+        .btn {
+          color: white;
+          &:hover {
+            background-color: #00000047;
+          }
+        }
+      }
+    }
+  }
 }

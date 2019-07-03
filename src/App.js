@@ -5,6 +5,7 @@ import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
 import { requestConnection, addListener, removeListener, sendHeartbeat } from './services/socket';
 import { deepCopy } from './helpers/functions';
 import './App.scss';
+import { MAX_HISTORY } from './helpers/constants';
 
 export class App extends Component {
   state = {
@@ -21,13 +22,24 @@ export class App extends Component {
   eventHandler = evt_key => d => {
     const exchanges = [ ...this.state.exchanges ];
     const exchange = exchanges.find(ex => ex.evt_key == evt_key);
-    exchange.data = d;
+    exchange.data.push(d);
+    exchange.data.shift();
+    if (!exchange.is_paused) exchange.datum = d;
     this.setState({ exchanges });
   };
 
   togglePaused = index => () => {
     const exchanges = [ ...this.state.exchanges ];
-    exchanges[index].is_paused = !exchanges[index].is_paused;
+    const exchange = exchanges[index];
+    exchange.is_paused = !exchange.is_paused;
+    if (exchange.is_paused) {
+      exchange.paused_data = [ ...exchange.data ];
+      console.log(exchange.paused_data);
+    }
+    if (!exchange.is_paused) {
+      exchange.position = 9;
+      exchange.datum = exchange.data[9];
+    }
     this.setState({ exchanges });
   };
 
@@ -43,6 +55,14 @@ export class App extends Component {
     this.setState({ exchanges });
   };
 
+  setPosition = index => position => {
+    const exchanges = [ ...this.state.exchanges ];
+    const exchange = exchanges[index];
+    exchange.position = position;
+    exchange.datum = exchange.paused_data[position];
+    this.setState({ exchanges });
+  };
+
   setDisplayData = index => data => {
     const exchanges = [ ...this.state.exchanges ];
     exchanges[index].display_data = data;
@@ -52,6 +72,7 @@ export class App extends Component {
   exchangeFunctions = index => ({
     togglePaused: this.togglePaused(index),
     setLevel: this.setLevel(index),
+    setPosition: this.setPosition(index),
     toggleClosed: this.toggleClosed(index),
     setDisplayData: this.setDisplayData(index),
     closeFeed: this.removeExchange
@@ -66,7 +87,8 @@ export class App extends Component {
       exchange,
       routing_key,
       evt_key,
-      data: {}
+      data: new Array(MAX_HISTORY).fill({ content: {} }),
+      position: 9
     });
     this.setState({ exchanges });
   };
@@ -123,10 +145,10 @@ export class App extends Component {
       requestConnection(d, res => {
         if (res.error) {
           alert(res.error);
-          console.log('Server Error:', res.error);
+          console.log('Server Error:', res.error, '\nAttempt made for server:', d.server);
         }
         else {
-          console.log('Response:', res);
+          console.debug('Response:', res);
           switch (d.exchange_type) {
             case 'rmq':
               this.addRmqExchange(d.server, d.exchange, d.routing_key, res.event_key);
