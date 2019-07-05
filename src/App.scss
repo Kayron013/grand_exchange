@@ -5,7 +5,24 @@
     top: 35px;
   }
   main {
-    padding: 25px 20px;
+    padding: 25px 20px 50px 25px;
+    height: calc(100vh - 64px - 28px);
+    overflow: auto;
+    margin-right: 4px;
+    box-sizing: border-box;
+    &::-webkit-scrollbar {
+      width: 6px;
+      background: #3b2558;
+      border-radius: 20px;
+      margin-right: 200px;
+      padding-right: 200px;
+      position: absolute;
+      left: 0;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: #f50057ab;
+      border-radius: 10px;
+    }
     .exchange-container {
       margin-left: -17px;
     }
@@ -16,9 +33,13 @@
     bottom: 0;
     width: 100%;
     background: #00000082;
-    height: 34px;
+    height: 28px;
     color: white;
     text-align: center;
-    padding: 10px;
+    padding: 7px;
+    font-size: .9rem;
+    &::after {
+      content: "Developed by Angel Campbell";
+    }
   }
 }

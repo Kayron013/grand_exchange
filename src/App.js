@@ -209,7 +209,7 @@ export class App extends Component {
             {this.renderExchanges()}
           </Grid>
         </main>
-        <footer>Developed by Angel Campbell</footer>
+        <footer />
       </div>
     );
   }

@@ -160,7 +160,7 @@ export const Exchange = ({
           <div className='last-received' onClick={toggleClosed}>
             {is_paused ? `Message ${position + 1} of ${MAX_HISTORY} Received:` : 'Last Message Received:'}
             <br />
-            {isEmpty(datum) ? '' : moment(datum.timestamp).format('hh:mm:ss a, MMM DD')}
+            {isEmpty(datum) ? '' : moment(datum.timestamp).format(`hh:mm:ss${is_paused ? '.SSS' : ''} a, MMM DD`)}
           </div>
           <ToggleButtonGroup className='position-btn-group'>
             <Button className='btn' onClick={prevPosition} disabled={!is_paused || position === 0}>
