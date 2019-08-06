@@ -20,6 +20,7 @@ export class RmqForm extends Component {
     routing_key: '',
     is_durable: false,
     type: 'fanout',
+    serialization: 'json',
     username: '',
     password: '',
     show_password: false,
@@ -60,14 +61,12 @@ export class RmqForm extends Component {
         }
       });
       alert('Fill out all required fields');
-    }
-    else {
+    } else {
       this.props.onSubmit({ ...this.state, exchange_type: 'rmq' });
     }
   };
 
   handleEnter = e => {
-    // console.log(e.charCode);
     if (e.charCode == 13) {
       this.handleSubmit(e);
     }
@@ -184,6 +183,16 @@ export class RmqForm extends Component {
             <FormControlLabel value='direct' control={<Radio />} label='Direct' />
             <FormControlLabel value='topic' control={<Radio />} label='Topic' />
             <FormControlLabel value='headers' control={<Radio />} label='Headers' />
+          </RadioGroup>
+          <RadioGroup
+            row
+            className='radio-group'
+            value={this.state.serialization}
+            onChange={this.handleChange('serialization')}
+            onBlur={this.handleBlur('serialization')}
+          >
+            <FormControlLabel value='json' control={<Radio />} label='JSON' />
+            <FormControlLabel value='pickle' control={<Radio />} label='PICKLE' />
           </RadioGroup>
         </div>
         <Typography variant='h6' className='form-heading'>

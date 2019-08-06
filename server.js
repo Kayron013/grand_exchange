@@ -10,7 +10,8 @@ const express = require('express'),
   amqp = require('amqplib/callback_api'),
   zmq = require('zeromq'),
   mqtt = require('mqtt'),
-  ping = require('ping');
+  ping = require('ping'),
+  pickle = require('./modules/jsonpickle');
 
 watch.watchTree('dist', _ => reload_server.reload());
 
@@ -58,14 +59,17 @@ const pingServer = async server => {
 /** A name that identifies GE queues in an exchange's bindings list. */
 const nameQ = () => 'grand-exchange_' + Math.random();
 
-const consume = (server, exchange, routing_key, res, ch, q) => {
+const consume = (server, exchange, routing_key, serialization, res, ch, q) => {
   const event_key = createEventKey('rmq', { server, exchange, routing_key });
   res.json({ status: 'ok', event_key });
   ch.consume(
     q.queue,
-    msg => {
+    async msg => {
       try {
-        const data = { timestamp: Date.now(), content: JSON.parse(msg.content) };
+        const content =
+          serialization == 'json' ? JSON.parse(msg.content) : await pickle.load(msg.content.toString('base64'));
+        if (!content) throw 'unknown serialization error';
+        const data = { timestamp: Date.now(), content };
         io.emit(event_key, data);
       } catch (err) {
         io.emit(event_key, { timestamp: Date.now(), content: { unparsable: null } });
@@ -97,7 +101,7 @@ const testExchange = (ex, is_durable, type, conn) =>
   });
 
 const makeRmqConnection = (
-  { username, password, server, exchange, routing_key = '', is_durable, type },
+  { username, password, server, exchange, routing_key = '', is_durable, type, serialization },
   res,
   event_key
 ) => {
@@ -157,7 +161,7 @@ const makeRmqConnection = (
                 heartbeat: Date.now(),
                 close: _ => conn.close()
               };
-              consume(server, exchange, routing_key, res, ch, q);
+              consume(server, exchange, routing_key, serialization, res, ch, q);
             });
           } else {
             conn.close();
@@ -169,9 +173,9 @@ const makeRmqConnection = (
   });
 };
 
-const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, type }, res, conn, ch) => {
-  const test = await testExchange(exchange, is_durable, type, conn);
-  if (test[0]) {
+const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, type, serialization }, res, conn, ch) => {
+  const [pass, err_msg] = await testExchange(exchange, is_durable, type, conn);
+  if (pass) {
     ch.assertExchange(exchange, type, { durable: is_durable });
     ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
       ch.bindQueue(q.queue, exchange, routing_key);
@@ -180,18 +184,18 @@ const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, ty
           [routing_key]: true
         }
       };
-      consume(server, exchange, routing_key, res, ch, q);
+      consume(server, exchange, routing_key, serialization, res, ch, q);
     });
   } else {
-    res.json({ status: 'error', error: test[1] });
+    res.json({ status: 'error', error: err_msg });
   }
 };
 
-const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
+const reuseExchange = ({ server, exchange, routing_key = '', serialization }, res, ch) => {
   ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
     ch.bindQueue(q.queue, exchange, routing_key);
     connections.rmq[server].exchanges[exchange].routes[routing_key] = true;
-    consume(server, exchange, routing_key, res, ch, q);
+    consume(server, exchange, routing_key, serialization, res, ch, q);
   });
 };
 
