@@ -3,7 +3,7 @@ import { AppBar, Toolbar, Typography, Fab, Icon, Grid, Modal } from '@material-u
 import { Exchange } from './components/Exchange/Exchange';
 import { ExchangeForm } from './components/ExchangeForm/ExchangeForm';
 import { requestConnection, addListener, removeListener, sendHeartbeat } from './services/socket';
-import { deepCopy } from './helpers/functions';
+import { deepCopy } from './helpers/functions'; //too slow
 import './App.scss';
 import { MAX_HISTORY } from './helpers/constants';
 
@@ -34,7 +34,6 @@ export class App extends Component {
     exchange.is_paused = !exchange.is_paused;
     if (exchange.is_paused) {
       exchange.paused_data = [ ...exchange.data ];
-      console.log(exchange.paused_data);
     }
     if (!exchange.is_paused) {
       exchange.position = MAX_HISTORY - 1;
@@ -156,11 +155,11 @@ export class App extends Component {
       alert('Already connected to this exchange');
     }
     else {
-      console.log('sending request');
+      console.debug('sending request');
       requestConnection(d, res => {
         if (res.error) {
           alert(res.error);
-          console.log('Server Error:', res.error, '\nAttempt made for server:', d.server);
+          console.error('Server Error:', res.error, '\nAttempt made for server:', d.server);
         }
         else {
           console.debug('Response:', res);

@@ -10,7 +10,8 @@ const express = require('express'),
   amqp = require('amqplib/callback_api'),
   zmq = require('zeromq'),
   mqtt = require('mqtt'),
-  ping = require('ping');
+  ping = require('ping'),
+  pickle = require('./modules/jsonpickle');
 
 watch.watchTree('dist', _ => reload_server.reload());
 
@@ -23,12 +24,14 @@ app.get('/', (req, res) => res.sendFile('index'));
 const connections = { rmq: {}, zmq: {}, mqtt: {} };
 global.connections = connections;
 
-const getEventKey = (type, props) =>
+const createEventKey = (type, props) =>
   type == 'rmq'
     ? `rmq::${props.server}::${props.exchange}::${props.routing_key}`
     : type == 'zmq'
-      ? `zmq::${props.server}:${props.port}`
-      : type == 'mqtt' ? `mqtt::${props.server}::${props.topic}` : null;
+    ? `zmq::${props.server}:${props.port}`
+    : type == 'mqtt'
+    ? `mqtt::${props.server}::${props.topic}`
+    : null;
 
 const pingServer = async server => {
   const res = { is_alive: false, err: null };
@@ -56,14 +59,17 @@ const pingServer = async server => {
 /** A name that identifies GE queues in an exchange's bindings list. */
 const nameQ = () => 'grand-exchange_' + Math.random();
 
-const consume = (server, exchange, routing_key, res, ch, q) => {
-  const event_key = getEventKey('rmq', { server, exchange, routing_key });
+const consume = (server, exchange, routing_key, serialization, res, ch, q) => {
+  const event_key = createEventKey('rmq', { server, exchange, routing_key });
   res.json({ status: 'ok', event_key });
   ch.consume(
     q.queue,
-    msg => {
+    async msg => {
       try {
-        const data = { timestamp: Date.now(), content: JSON.parse(msg.content) };
+        const content =
+          serialization == 'json' ? JSON.parse(msg.content) : await pickle.load(msg.content.toString('base64'));
+        if (!content) throw 'unknown serialization error';
+        const data = { timestamp: Date.now(), content };
         io.emit(event_key, data);
       } catch (err) {
         io.emit(event_key, { timestamp: Date.now(), content: { unparsable: null } });
@@ -79,27 +85,34 @@ const testExchange = (ex, is_durable, type, conn) =>
       ch.on('error', err => {
         switch (err.code) {
           case 404:
-            resolve([ false, 'Exchange Does Not Exist' ]);
+            resolve([false, 'Exchange Does Not Exist']);
             break;
           case 406:
-            resolve([ false, 'Exchange Declared With Incorrect Types' ]);
+            resolve([false, 'Exchange Declared With Incorrect Types']);
             break;
           default:
-            resolve([ false, `Unknown Channel Error (${err.code})` ]);
-            console.log('**test exchange error**', err);
+            resolve([false, `Unknown Channel Error (${err.code})`]);
+            console.error('**test exchange error**', err);
         }
       });
       ch.checkExchange(ex);
-      ch.assertExchange(ex, type, { durable: is_durable }, (err, ok) => (ok ? resolve([ true ]) : null));
+      ch.assertExchange(ex, type, { durable: is_durable }, (err, ok) => (ok ? resolve([true]) : null));
     });
   });
 
-const makeRmqConnection = ({ username, password, server, exchange, routing_key = '', is_durable, type }, res) => {
+const makeRmqConnection = (
+  { username, password, server, exchange, routing_key = '', is_durable, type, serialization },
+  res,
+  event_key
+) => {
+  /*
+   * The callback function gets called twice on error.
+   * The second call will throw an error for trying to reuse the ended result object.
+   */
   let calls = 0;
   amqp.connect(`amqp://${username}:${password}@${server}`, (err, conn) => {
     calls++;
     if (err) {
-      //console.log('**connection error**', err, err.code);
       if (calls > 1) return;
       switch (err.code) {
         case undefined:
@@ -117,18 +130,20 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
           break;
         default:
           res.json({ status: 'error', error: 'Unknown Connection Error' });
-          console.log('**connection error**', err, err.code);
-          console.log('******************************\n******************************');
+          console.error('**connection error**', err, err.code);
       }
-    }
-    else {
-      //console.log(server, exchange, routing_key, is_durable);
+    } else {
+      conn.on('error', err => {
+        io.emit(event_key, { timestamp: Date.now(), content: { $SERVER_ERROR$: err } });
+        delete connections.rmq[server];
+      });
+
       conn.createChannel(async (err, ch) => {
-        ch.on('error', err => console.log('Channel Error[1]', err));
-        if (err) console.log('channel error[2]', err);
+        if (err) console.error('Channel Error [1]', err);
         else {
-          const test = await testExchange(exchange, is_durable, type, conn);
-          if (test[0]) {
+          ch.on('error', err => console.error('Channel Error [2]', err));
+          const [pass, err_msg] = await testExchange(exchange, is_durable, type, conn);
+          if (pass) {
             ch.assertExchange(exchange, type, { durable: is_durable });
             ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
               ch.bindQueue(q.queue, exchange, routing_key);
@@ -139,21 +154,18 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
                 exchanges: {
                   [exchange]: {
                     routes: {
-                      routing_key
+                      [routing_key]: true
                     }
                   }
                 },
                 heartbeat: Date.now(),
-                close: function() {
-                  this.connection.close();
-                }
+                close: _ => conn.close()
               };
-              consume(server, exchange, routing_key, res, ch, q);
+              consume(server, exchange, routing_key, serialization, res, ch, q);
             });
-          }
-          else {
+          } else {
             conn.close();
-            res.json({ status: 'error', error: test[1] });
+            res.json({ status: 'error', error: err_msg });
           }
         }
       });
@@ -161,53 +173,49 @@ const makeRmqConnection = ({ username, password, server, exchange, routing_key =
   });
 };
 
-const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, type }, res, conn, ch) => {
-  const test = await testExchange(exchange, is_durable, type, conn);
-  if (test[0]) {
+const reuseChannel = async ({ server, exchange, routing_key = '', is_durable, type, serialization }, res, conn, ch) => {
+  const [pass, err_msg] = await testExchange(exchange, is_durable, type, conn);
+  if (pass) {
     ch.assertExchange(exchange, type, { durable: is_durable });
     ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
       ch.bindQueue(q.queue, exchange, routing_key);
       connections.rmq[server].exchanges[exchange] = {
         routes: {
-          routing_key
+          [routing_key]: true
         }
       };
-      consume(server, exchange, routing_key, res, ch, q);
+      consume(server, exchange, routing_key, serialization, res, ch, q);
     });
-  }
-  else {
-    res.json({ status: 'error', error: test[1] });
+  } else {
+    res.json({ status: 'error', error: err_msg });
   }
 };
 
-const reuseExchange = ({ server, exchange, routing_key = '' }, res, ch) => {
+const reuseExchange = ({ server, exchange, routing_key = '', serialization }, res, ch) => {
   ch.assertQueue(nameQ(), { exclusive: true }, (err, q) => {
     ch.bindQueue(q.queue, exchange, routing_key);
-    connections.rmq[server].exchanges[exchange].routes[routing_key] = { connections: 1 };
-    consume(server, exchange, routing_key, res, ch, q);
+    connections.rmq[server].exchanges[exchange].routes[routing_key] = true;
+    consume(server, exchange, routing_key, serialization, res, ch, q);
   });
 };
 
 app.post('/connect/rmq', (req, res) => {
-  const { username, password, server, exchange, routing_key } = req.body,
-    event_key = getEventKey('rmq', { server, exchange, routing_key });
-  connection = connections.rmq[server];
+  const { username, password, server, exchange, routing_key } = req.body;
+  const event_key = createEventKey('rmq', { server, exchange, routing_key });
+  const connection = connections.rmq[server];
   if (connection && connection.credentials.username == username && connection.credentials.password == password) {
     if (connection.exchanges[exchange]) {
       const route = connection.exchanges[exchange].routes[routing_key];
       if (route) {
         res.json({ status: 'ok', event_key });
-      }
-      else {
+      } else {
         reuseExchange(req.body, res, connection.channel);
       }
-    }
-    else {
+    } else {
       reuseChannel(req.body, res, connection.connection, connection.channel);
     }
-  }
-  else {
-    makeRmqConnection(req.body, res);
+  } else {
+    makeRmqConnection(req.body, res, event_key);
     console.log('attempted new connection =>', event_key);
   }
 });
@@ -221,15 +229,14 @@ app.post('/connect/rmq', (req, res) => {
 //
 
 const makeZmqConnection = async ({ server, port }, res) => {
-  const event_key = getEventKey('zmq', { server, port }),
+  const event_key = createEventKey('zmq', { server, port }),
     socket = zmq.socket('sub'),
     ping_res = await pingServer(server);
 
   if (ping_res.err) {
-    console.log(`Error pinging ${server}`);
+    console.error(`Error pinging ${server}`);
     return res.json({ status: 'error', error: 'Server Error' });
-  }
-  else if (!ping_res.is_alive) {
+  } else if (!ping_res.is_alive) {
     return res.json({ status: 'error', error: 'Server Unreachable' });
   }
   socket.connect(`tcp://${server}:${port}`);
@@ -246,19 +253,16 @@ const makeZmqConnection = async ({ server, port }, res) => {
   connections.zmq[`${server}:${port}`] = {
     socket,
     heartbeat: Date.now(),
-    close: function() {
-      this.socket.close();
-    }
+    close: _ => socket.close()
   };
 };
 
 app.post('/connect/zmq', (req, res) => {
   const { server, port } = req.body,
-    event_key = getEventKey('zmq', { server, port });
+    event_key = createEventKey('zmq', { server, port });
   if (connections.zmq[`${server}:${port}`]) {
     res.json({ status: 'ok', event_key });
-  }
-  else {
+  } else {
     makeZmqConnection(req.body, res);
     console.log('attempted new connection =>', event_key);
   }
@@ -273,7 +277,7 @@ app.post('/connect/zmq', (req, res) => {
 //
 
 const mqttConsume = (client, server, topic, res) => {
-  const event_key = getEventKey('mqtt', { server, topic });
+  const event_key = createEventKey('mqtt', { server, topic });
   res.json({ status: 'ok', event_key });
   client.on('message', (msg_topic, msg) => {
     if (!topic || topic === msg_topic) {
@@ -298,7 +302,7 @@ const makeMqttConnection = async ({ server, topic }, res) => {
         res.json({ status: 'error', error: 'Connection Refused' });
         break;
       default:
-        console.log('Mqtt Error:', err);
+        console.error('Mqtt Error:', err);
         res.json({ status: 'error', error: 'Unknown Connection Error' });
     }
   });
@@ -306,10 +310,9 @@ const makeMqttConnection = async ({ server, topic }, res) => {
   const ping_res = await pingServer(server);
 
   if (!error && ping_res.err) {
-    console.log(`Error pinging ${server}`);
+    console.error(`Error pinging ${server}`);
     return res.json({ status: 'error', error: 'Server Error' });
-  }
-  else if (!error && !ping_res.is_alive) {
+  } else if (!error && !ping_res.is_alive) {
     return res.json({ status: 'error', error: 'Server Unreachable' });
   }
 
@@ -323,19 +326,16 @@ const makeMqttConnection = async ({ server, topic }, res) => {
     clearTimeout(timeout);
     client.subscribe(topic, err => {
       if (err) {
-        console.log('mqtt subscribe err', err);
+        console.error('mqtt subscribe err', err);
         res.json({ status: 'error', error: '' });
-      }
-      else {
+      } else {
         connections.mqtt[server] = {
           client,
           topics: {
             [topic]: topic
           },
           heartbeat: Date.now(),
-          close: function() {
-            this.client.end(true);
-          }
+          close: _ => client.end(true)
         };
         mqttConsume(client, server, topic, res);
       }
@@ -351,17 +351,15 @@ const reuseMqttClient = ({ server, topic }, client, res) => {
 
 app.post('/connect/mqtt', (req, res) => {
   const { server, topic } = req.body,
-    event_key = getEventKey('mqtt', { server, topic }),
+    event_key = createEventKey('mqtt', { server, topic }),
     connection = connections.mqtt[server];
   if (connection) {
     if (connection.topics[topic]) {
       res.json({ status: 'ok', event_key });
-    }
-    else {
+    } else {
       reuseMqttClient(req.body, connection.client, res);
     }
-  }
-  else {
+  } else {
     makeMqttConnection(req.body, res);
     console.log('attempted new connection =>', event_key);
   }
