@@ -20,7 +20,6 @@ export class RmqForm extends Component {
     routing_key: '',
     is_durable: false,
     type: 'fanout',
-    serialization: 'json',
     username: '',
     password: '',
     show_password: false,
@@ -183,16 +182,6 @@ export class RmqForm extends Component {
             <FormControlLabel value='direct' control={<Radio />} label='Direct' />
             <FormControlLabel value='topic' control={<Radio />} label='Topic' />
             <FormControlLabel value='headers' control={<Radio />} label='Headers' />
-          </RadioGroup>
-          <RadioGroup
-            row
-            className='radio-group'
-            value={this.state.serialization}
-            onChange={this.handleChange('serialization')}
-            onBlur={this.handleBlur('serialization')}
-          >
-            <FormControlLabel value='json' control={<Radio />} label='JSON' />
-            <FormControlLabel value='pickle' control={<Radio />} label='PICKLE' />
           </RadioGroup>
         </div>
         <Typography variant='h6' className='form-heading'>

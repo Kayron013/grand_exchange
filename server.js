@@ -59,16 +59,32 @@ const pingServer = async server => {
 /** A name that identifies GE queues in an exchange's bindings list. */
 const nameQ = () => 'grand-exchange_' + Math.random();
 
+const parse = async (buffer, type) => {
+  switch (type) {
+    case 'json':
+      return [JSON.parse(buffer), 'json'];
+    case 'pickle':
+      return [await pickle.load(buffer.toString('base64')), 'pickle'];
+    default:
+      try {
+        return [JSON.parse(buffer), 'json'];
+      } catch (e) {
+        return [await pickle.load(buffer.toString('base64')), 'pickle'];
+      }
+  }
+};
+
 const consume = (server, exchange, routing_key, serialization, res, ch, q) => {
   const event_key = createEventKey('rmq', { server, exchange, routing_key });
+  const serv_conn = connections.rmq[server];
   res.json({ status: 'ok', event_key });
   ch.consume(
     q.queue,
     async msg => {
       try {
-        const content =
-          serialization == 'json' ? JSON.parse(msg.content) : await pickle.load(msg.content.toString('base64'));
-        if (!content) throw 'unknown serialization error';
+        const serialization = serv_conn.serialization;
+        const [content, serial] = await parse(msg.content, serialization);
+        serv_conn.serialization = serial;
         const data = { timestamp: Date.now(), content };
         io.emit(event_key, data);
       } catch (err) {

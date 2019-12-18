@@ -1,7 +1,7 @@
 const spawn = require('child_process').spawn;
 
 module.exports.load = pickle => {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const convert = spawn('python', [__dirname + '/convert.py', '--loads']),
       stdout_buffer = [];
 
@@ -12,14 +12,15 @@ module.exports.load = pickle => {
     convert.on('exit', _ => {
       const data = stdout_buffer.join('');
       if (data == -1) {
-        resolve(false);
+        reject('could not load pickle');
       } else {
         let result;
         try {
           result = JSON.parse(data);
+          resolve(result);
         } catch (err) {
-          console.log('failed parse', data);
           result = false;
+          reject('could not parse json');
         }
         resolve(result);
       }

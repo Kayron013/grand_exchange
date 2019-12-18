@@ -34,12 +34,12 @@
     width: 100%;
     background: #00000082;
     height: 28px;
-    color: white;
+    color: #ffffffa6;
     text-align: center;
     padding: 7px;
-    font-size: .9rem;
+    font-size: 0.9rem;
     &::after {
-      content: "Developed by Angel Campbell";
+      content: 'Developed by Angel Campbell';
     }
   }
 }
